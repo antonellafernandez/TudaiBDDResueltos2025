@@ -1,3 +1,4 @@
+-- Creates
 CREATE TABLE IF NOT EXISTS "REPOSITORIO" (
 	"id_repositorio" bigint NOT NULL,
 	"nombre" varchar(43) NOT NULL,
@@ -129,6 +130,7 @@ INSERT INTO "VIDEO" ("id_objeto", "id_coleccion", "resolucion", "frames_x_segund
 (9, 9, '1920x1080', 30),
 (10, 10, '1280x720', 24);
 
+-- Inserts para DOCUMENTO
 INSERT INTO "DOCUMENTO" ("id_objeto", "id_coleccion", "tipo_publicacion", "modos_color", "resolucion_captura") VALUES
 (1, 1, 'Revista', 'Color', '300dpi'),
 (2, 2, 'Libro', 'Escala de grises', '600dpi'),
@@ -141,6 +143,7 @@ INSERT INTO "DOCUMENTO" ("id_objeto", "id_coleccion", "tipo_publicacion", "modos
 (9, 9, 'Artículo', 'Color', '300dpi'),
 (10, 10, 'Revista', 'Color', '300dpi');
 
+-- Selects
 SELECT * FROM "REPOSITORIO";
 SELECT * FROM "COLECCION";
 SELECT * FROM "OBJETO";
