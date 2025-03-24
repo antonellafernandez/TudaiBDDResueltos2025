@@ -24,7 +24,8 @@ CREATE TABLE IF NOT EXISTS OBJETO (
 	fuente varchar(40) NOT NULL,
 	fecha date NOT NULL,
 	tipo int NOT NULL,
-	CONSTRAINT OBJETO_pk0 PRIMARY KEY (id_objeto, id_coleccion)
+	CONSTRAINT OBJETO_pk0 PRIMARY KEY (id_objeto),
+    CONSTRAINT OBJETO_pk1 PRIMARY KEY (id_coleccion)
 );
 
 CREATE TABLE IF NOT EXISTS AUDIO (
@@ -32,7 +33,8 @@ CREATE TABLE IF NOT EXISTS AUDIO (
 	id_coleccion int NOT NULL,
 	formato varchar(40) NOT NULL,
 	duracion int NOT NULL,
-	CONSTRAINT AUDIO_pk0 PRIMARY KEY (id_objeto, id_coleccion)
+	CONSTRAINT AUDIO_pk0 PRIMARY KEY (id_objeto),
+    CONSTRAINT AUDIO_pk1 PRIMARY KEY (id_coleccion)
 );
 
 CREATE TABLE IF NOT EXISTS VIDEO (
@@ -40,7 +42,8 @@ CREATE TABLE IF NOT EXISTS VIDEO (
 	id_coleccion int NOT NULL,
 	resolucion varchar(40) NOT NULL,
 	frames_x_segundo int NOT NULL,
-	CONSTRAINT VIDEO_pk0 PRIMARY KEY (id_objeto, id_coleccion)
+	CONSTRAINT VIDEO_pk0 PRIMARY KEY (id_objeto),
+    CONSTRAINT VIDEO_pk1 PRIMARY KEY (id_coleccion)
 );
 
 CREATE TABLE IF NOT EXISTS DOCUMENTO (
@@ -49,7 +52,8 @@ CREATE TABLE IF NOT EXISTS DOCUMENTO (
 	tipo_publicacion varchar(40) NOT NULL,
 	modos_color varchar(40) NOT NULL,
 	resolucion_captura varchar(40) NOT NULL,
-	CONSTRAINT DOCUMENTO_pk0 PRIMARY KEY (id_objeto, id_coleccion)
+	CONSTRAINT DOCUMENTO_pk0 PRIMARY KEY (id_objeto),
+    CONSTRAINT DOCUMENTO_pk1 PRIMARY KEY (id_coleccion)
 );
 
 -- FK
