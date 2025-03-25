@@ -1,4 +1,5 @@
--- Creates
+-- tables
+-- Table: REPOSITORIO
 CREATE TABLE IF NOT EXISTS REPOSITORIO (
 	id_repositorio int NOT NULL,
 	nombre varchar(40) NOT NULL,
@@ -8,6 +9,7 @@ CREATE TABLE IF NOT EXISTS REPOSITORIO (
 	CONSTRAINT REPOSITORIO_pk0 PRIMARY KEY (id_repositorio)
 );
 
+-- Table: COLECCION
 CREATE TABLE IF NOT EXISTS COLECCION (
 	id_coleccion int NOT NULL,
 	titulo_coleccion varchar(40) NOT NULL,
@@ -15,6 +17,7 @@ CREATE TABLE IF NOT EXISTS COLECCION (
 	CONSTRAINT COLECCION_pk0 PRIMARY KEY (id_coleccion)
 );
 
+-- Table: OBJETO
 CREATE TABLE IF NOT EXISTS OBJETO (
 	id_objeto int NOT NULL,
 	id_coleccion int NOT NULL,
@@ -28,6 +31,7 @@ CREATE TABLE IF NOT EXISTS OBJETO (
     CONSTRAINT OBJETO_pk1 PRIMARY KEY (id_coleccion)
 );
 
+-- Table: AUDIO
 CREATE TABLE IF NOT EXISTS AUDIO (
 	id_objeto int NOT NULL,
 	id_coleccion int NOT NULL,
@@ -37,6 +41,7 @@ CREATE TABLE IF NOT EXISTS AUDIO (
     CONSTRAINT AUDIO_pk1 PRIMARY KEY (id_coleccion)
 );
 
+-- Table: VIDEO
 CREATE TABLE IF NOT EXISTS VIDEO (
 	id_objeto int NOT NULL,
 	id_coleccion int NOT NULL,
@@ -46,6 +51,7 @@ CREATE TABLE IF NOT EXISTS VIDEO (
     CONSTRAINT VIDEO_pk1 PRIMARY KEY (id_coleccion)
 );
 
+-- Table: DOCUMENTO
 CREATE TABLE IF NOT EXISTS DOCUMENTO (
 	id_objeto int NOT NULL,
 	id_coleccion int NOT NULL,
@@ -56,28 +62,64 @@ CREATE TABLE IF NOT EXISTS DOCUMENTO (
     CONSTRAINT DOCUMENTO_pk1 PRIMARY KEY (id_coleccion)
 );
 
--- FK
+-- foreign keys
+-- Reference: OBJETO_COLECCION (table: OBJETO)
 ALTER TABLE OBJETO ADD CONSTRAINT OBJETO_fk1
-    FOREIGN KEY (id_coleccion) REFERENCES COLECCION(id_coleccion);
+    FOREIGN KEY (id_coleccion)
+    REFERENCES COLECCION(id_coleccion)
+    NOT DEFERRABLE
+    INITIALLY IMMEDIATE
+;
+
+-- Reference: OBJETO_REPOSITORIO (table: OBJETO)
 ALTER TABLE OBJETO ADD CONSTRAINT OBJETO_fk2
-    FOREIGN KEY (id_repositorio) REFERENCES REPOSITORIO(id_repositorio);
+    FOREIGN KEY (id_repositorio)
+    REFERENCES REPOSITORIO(id_repositorio)
+    NOT DEFERRABLE
+    INITIALLY IMMEDIATE
+;
 
+-- Reference: AUDIO_OBJETO (table: AUDIO)
 ALTER TABLE AUDIO ADD CONSTRAINT AUDIO_fk0
-    FOREIGN KEY (id_objeto) REFERENCES OBJETO(id_objeto);
+    FOREIGN KEY (id_objeto)
+    REFERENCES OBJETO(id_objeto)
+    NOT DEFERRABLE
+    INITIALLY IMMEDIATE
+;
 ALTER TABLE AUDIO ADD CONSTRAINT AUDIO_fk1
-    FOREIGN KEY (id_coleccion) REFERENCES OBJETO(id_coleccion);
+    FOREIGN KEY (id_coleccion)
+    REFERENCES OBJETO(id_coleccion)
+    NOT DEFERRABLE
+    INITIALLY IMMEDIATE
+;
 
+-- Reference: VIDEO_OBJETO (table: VIDEO)
 ALTER TABLE VIDEO ADD CONSTRAINT VIDEO_fk0
-    FOREIGN KEY (id_objeto) REFERENCES OBJETO(id_objeto);
+    FOREIGN KEY (id_objeto)
+    REFERENCES OBJETO(id_objeto)
+    NOT DEFERRABLE
+    INITIALLY IMMEDIATE
+;
 ALTER TABLE VIDEO ADD CONSTRAINT VIDEO_fk1
-    FOREIGN KEY (id_coleccion) REFERENCES OBJETO(id_coleccion);
+    FOREIGN KEY (id_coleccion)
+    REFERENCES OBJETO(id_coleccion)
+    NOT DEFERRABLE
+    INITIALLY IMMEDIATE
+;
 
+-- Reference: DOCUMENTO_OBJETO (table: DOCUMENTO)
 ALTER TABLE DOCUMENTO ADD CONSTRAINT DOCUMENTO_fk0
-    FOREIGN KEY (id_objeto) REFERENCES OBJETO(id_objeto);
+    FOREIGN KEY (id_objeto)
+    REFERENCES OBJETO(id_objeto)
+    NOT DEFERRABLE
+    INITIALLY IMMEDIATE;
 ALTER TABLE DOCUMENTO ADD CONSTRAINT DOCUMENTO_fk1
-    FOREIGN KEY (id_coleccion) REFERENCES OBJETO(id_coleccion);
+    FOREIGN KEY (id_coleccion)
+    REFERENCES OBJETO(id_coleccion)
+    NOT DEFERRABLE
+    INITIALLY IMMEDIATE;
 
--- Inserts para REPOSITORIO
+-- Insert: REPOSITORIO
 INSERT INTO REPOSITORIO (id_repositorio, nombre, publico, descripcion, duenio) VALUES
 (1, 'Repo1', true, 'Descripcion1', 'Duenio1'),
 (2, 'Repo2', false, 'Descripcion2', 'Duenio2'),
@@ -90,7 +132,7 @@ INSERT INTO REPOSITORIO (id_repositorio, nombre, publico, descripcion, duenio) V
 (9, 'Repo9', true, 'Descripcion9', 'Duenio9'),
 (10, 'Repo10', false, 'Descripcion10', 'Duenio10');
 
--- Inserts para COLECCION
+-- Insert: COLECCION
 INSERT INTO COLECCION (id_coleccion, titulo_coleccion, descripcion) VALUES
 (1, 'Coleccion1', 'Descripcion1'),
 (2, 'Coleccion2', 'Descripcion2'),
@@ -103,7 +145,7 @@ INSERT INTO COLECCION (id_coleccion, titulo_coleccion, descripcion) VALUES
 (9, 'Coleccion9', 'Descripcion9'),
 (10, 'Coleccion10', 'Descripcion10');
 
--- Inserts para OBJETO
+-- Insert: OBJETO
 INSERT INTO OBJETO (id_objeto, id_coleccion, id_repositorio, titulo, descripcion, fuente, fecha, tipo) VALUES
 (1, 1, 1, 'Objeto1', 'Desc1', 'Fuente1', '2024-01-01', 1),
 (2, 2, 2, 'Objeto2', 'Desc2', 'Fuente2', '2024-01-02', 2),
@@ -116,7 +158,7 @@ INSERT INTO OBJETO (id_objeto, id_coleccion, id_repositorio, titulo, descripcion
 (9, 9, 9, 'Objeto9', 'Desc9', 'Fuente9', '2024-01-09', 9),
 (10, 10, 10, 'Objeto10', 'Desc10', 'Fuente10', '2024-01-10', 10);
 
--- Inserts para AUDIO
+-- Insert: AUDIO
 INSERT INTO AUDIO (id_objeto, id_coleccion, formato, duracion) VALUES
 (1, 1, 'MP3', 120),
 (2, 2, 'WAV', 150),
@@ -129,7 +171,7 @@ INSERT INTO AUDIO (id_objeto, id_coleccion, formato, duracion) VALUES
 (9, 9, 'AAC', 160),
 (10, 10, 'OGG', 230);
 
--- Inserts para VIDEO
+-- Insert: VIDEO
 INSERT INTO VIDEO (id_objeto, id_coleccion, resolucion, frames_x_segundo) VALUES
 (1, 1, '1920x1080', 30),
 (2, 2, '1280x720', 24),
@@ -142,7 +184,7 @@ INSERT INTO VIDEO (id_objeto, id_coleccion, resolucion, frames_x_segundo) VALUES
 (9, 9, '1920x1080', 30),
 (10, 10, '1280x720', 24);
 
--- Inserts para DOCUMENTO
+-- Insert: DOCUMENTO
 INSERT INTO DOCUMENTO (id_objeto, id_coleccion, tipo_publicacion, modos_color, resolucion_captura) VALUES
 (1, 1, 'Revista', 'Color', '300dpi'),
 (2, 2, 'Libro', 'Escala de grises', '600dpi'),
@@ -155,7 +197,7 @@ INSERT INTO DOCUMENTO (id_objeto, id_coleccion, tipo_publicacion, modos_color, r
 (9, 9, 'Artículo', 'Color', '300dpi'),
 (10, 10, 'Revista', 'Color', '300dpi');
 
--- Selects
+-- selects
 SELECT * FROM REPOSITORIO;
 SELECT * FROM COLECCION;
 SELECT * FROM OBJETO;
