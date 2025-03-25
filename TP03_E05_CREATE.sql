@@ -7,7 +7,8 @@ CREATE TABLE IF NOT EXISTS SATELITE (
     fecha_lanzamiento date  NOT NULL,
     agencia_operadora varchar(40)  NOT NULL,
     estado varchar(20)  NOT NULL,
-    CONSTRAINT SATELITE_pk0 PRIMARY KEY (id_satelite)
+    CONSTRAINT SATELITE_pk0 PRIMARY KEY (id_satelite),
+    CONSTRAINT SATELITE_ak0 UNIQUE (nombre) NOT DEFERRABLE INITIALLY IMMEDIATE
 );
 
 -- Table: EQUIPO
