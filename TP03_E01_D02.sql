@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS USUARIO (
 	apellido varchar(43) NOT NULL,
 	nombre varchar(43) NOT NULL,
 	e_mal varchar(43) NOT NULL,
-	tipo_usu int NOT NULL,
+	tipo_usu varchar(2) NOT NULL,
 	CONSTRAINT USUARIO_pk0 PRIMARY KEY (id_usuario)
 );
 

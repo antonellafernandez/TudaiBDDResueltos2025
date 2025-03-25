@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS OBJETO (
 	descripcion varchar(40) NOT NULL,
 	fuente varchar(40) NOT NULL,
 	fecha date NOT NULL,
-	tipo int NOT NULL,
+	tipo varchar(1) NOT NULL,
 	CONSTRAINT OBJETO_pk0 PRIMARY KEY (id_objeto),
     CONSTRAINT OBJETO_pk1 PRIMARY KEY (id_coleccion)
 );

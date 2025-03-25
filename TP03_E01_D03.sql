@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS PRODUCTO_QUIMICO (
 	id_prod_quim int NOT NULL,
 	nombre_prod_quim varchar(40) NOT NULL,
 	formula varchar(40) NOT NULL,
-	tipo_pq int NOT NULL,
+	tipo_pq varchar(1) NOT NULL,
 	CONSTRAINT PRODUCTO_QUIMICO_pk0 PRIMARY KEY (id_prod_quim)
 );
 
