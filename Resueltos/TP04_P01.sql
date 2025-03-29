@@ -14,7 +14,7 @@ FROM unc_esq_peliculas.departamento;
 -- ordenados por apellido y nombre. (P)
 /* SELECT nombre AS n, apellido AS a, telefono AS t
 FROM unc_esq_peliculas.empleado
-WHERE id_tarea LIKE '7231'
+WHERE id_tarea = '7231'
 ORDER BY a ASC, n ASC;
 */
 
@@ -35,7 +35,7 @@ WHERE id_coordinador IS NULL;
 -- 6. Muestre los datos de los distribuidores internacionales que no tienen registrado teléfono. (P)
 /* SELECT *
 FROM unc_esq_peliculas.distribuidor
-WHERE tipo LIKE 'I'
+WHERE tipo = 'I'
 AND telefono IS NULL;
 */
 
