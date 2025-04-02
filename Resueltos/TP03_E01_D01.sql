@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS REPOSITORIO (
 	publico boolean NOT NULL,
 	descripcion varchar(40) NOT NULL,
 	duenio varchar(40),
-	CONSTRAINT REPOSITORIO_pk0 PRIMARY KEY (id_repositorio)
+	CONSTRAINT REPOSITORIO_pk PRIMARY KEY (id_repositorio)
 );
 
 -- Table: COLECCION
@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS COLECCION (
 	id_coleccion int NOT NULL,
 	titulo_coleccion varchar(40) NOT NULL,
 	descripcion varchar(40) NOT NULL,
-	CONSTRAINT COLECCION_pk0 PRIMARY KEY (id_coleccion)
+	CONSTRAINT COLECCION_pk PRIMARY KEY (id_coleccion)
 );
 
 -- Table: OBJETO
@@ -27,8 +27,7 @@ CREATE TABLE IF NOT EXISTS OBJETO (
 	fuente varchar(40) NOT NULL,
 	fecha date NOT NULL,
 	tipo varchar(1) NOT NULL,
-	CONSTRAINT OBJETO_pk0 PRIMARY KEY (id_objeto),
-    CONSTRAINT OBJETO_pk1 PRIMARY KEY (id_coleccion)
+	CONSTRAINT OBJETO_pk PRIMARY KEY (id_objeto, id_coleccion)
 );
 
 -- Table: AUDIO
@@ -37,8 +36,7 @@ CREATE TABLE IF NOT EXISTS AUDIO (
 	id_coleccion int NOT NULL,
 	formato varchar(40) NOT NULL,
 	duracion int NOT NULL,
-	CONSTRAINT AUDIO_pk0 PRIMARY KEY (id_objeto),
-    CONSTRAINT AUDIO_pk1 PRIMARY KEY (id_coleccion)
+	CONSTRAINT AUDIO_pk PRIMARY KEY (id_objeto, id_coleccion)
 );
 
 -- Table: VIDEO
@@ -47,8 +45,7 @@ CREATE TABLE IF NOT EXISTS VIDEO (
 	id_coleccion int NOT NULL,
 	resolucion varchar(40) NOT NULL,
 	frames_x_segundo int NOT NULL,
-	CONSTRAINT VIDEO_pk0 PRIMARY KEY (id_objeto),
-    CONSTRAINT VIDEO_pk1 PRIMARY KEY (id_coleccion)
+	CONSTRAINT VIDEO_pk PRIMARY KEY (id_objeto, id_coleccion)
 );
 
 -- Table: DOCUMENTO
@@ -58,8 +55,7 @@ CREATE TABLE IF NOT EXISTS DOCUMENTO (
 	tipo_publicacion varchar(40) NOT NULL,
 	modos_color varchar(40) NOT NULL,
 	resolucion_captura varchar(40) NOT NULL,
-	CONSTRAINT DOCUMENTO_pk0 PRIMARY KEY (id_objeto),
-    CONSTRAINT DOCUMENTO_pk1 PRIMARY KEY (id_coleccion)
+	CONSTRAINT DOCUMENTO_pk PRIMARY KEY (id_objeto, id_coleccion)
 );
 
 -- foreign keys
@@ -80,42 +76,25 @@ ALTER TABLE OBJETO ADD CONSTRAINT OBJETO_fk2
 ;
 
 -- Reference: AUDIO_OBJETO (table: AUDIO)
-ALTER TABLE AUDIO ADD CONSTRAINT AUDIO_fk0
-    FOREIGN KEY (id_objeto)
-    REFERENCES OBJETO(id_objeto)
+ALTER TABLE AUDIO ADD CONSTRAINT AUDIO_fk
+    FOREIGN KEY (id_objeto, id_coleccion)
+    REFERENCES OBJETO(id_objeto, id_coleccion)
     NOT DEFERRABLE
-    INITIALLY IMMEDIATE
-;
-ALTER TABLE AUDIO ADD CONSTRAINT AUDIO_fk1
-    FOREIGN KEY (id_coleccion)
-    REFERENCES OBJETO(id_coleccion)
-    NOT DEFERRABLE
-    INITIALLY IMMEDIATE
+    INITIALLY IMMEDIATE;
 ;
 
 -- Reference: VIDEO_OBJETO (table: VIDEO)
-ALTER TABLE VIDEO ADD CONSTRAINT VIDEO_fk0
-    FOREIGN KEY (id_objeto)
-    REFERENCES OBJETO(id_objeto)
-    NOT DEFERRABLE
-    INITIALLY IMMEDIATE
-;
-ALTER TABLE VIDEO ADD CONSTRAINT VIDEO_fk1
-    FOREIGN KEY (id_coleccion)
-    REFERENCES OBJETO(id_coleccion)
+ALTER TABLE VIDEO ADD CONSTRAINT VIDEO_fk
+    FOREIGN KEY (id_objeto, id_coleccion)
+    REFERENCES OBJETO(id_objeto, id_coleccion)
     NOT DEFERRABLE
     INITIALLY IMMEDIATE
 ;
 
 -- Reference: DOCUMENTO_OBJETO (table: DOCUMENTO)
-ALTER TABLE DOCUMENTO ADD CONSTRAINT DOCUMENTO_fk0
-    FOREIGN KEY (id_objeto)
-    REFERENCES OBJETO(id_objeto)
-    NOT DEFERRABLE
-    INITIALLY IMMEDIATE;
-ALTER TABLE DOCUMENTO ADD CONSTRAINT DOCUMENTO_fk1
-    FOREIGN KEY (id_coleccion)
-    REFERENCES OBJETO(id_coleccion)
+ALTER TABLE DOCUMENTO ADD CONSTRAINT DOCUMENTO_fk
+    FOREIGN KEY (id_objeto, id_coleccion)
+    REFERENCES OBJETO(id_objeto, id_coleccion)
     NOT DEFERRABLE
     INITIALLY IMMEDIATE;
 
@@ -150,13 +129,13 @@ INSERT INTO OBJETO (id_objeto, id_coleccion, id_repositorio, titulo, descripcion
 (1, 1, 1, 'Objeto1', 'Desc1', 'Fuente1', '2024-01-01', 1),
 (2, 2, 2, 'Objeto2', 'Desc2', 'Fuente2', '2024-01-02', 2),
 (3, 3, 3, 'Objeto3', 'Desc3', 'Fuente3', '2024-01-03', 3),
-(4, 4, 4, 'Objeto4', 'Desc4', 'Fuente4', '2024-01-04', 4),
-(5, 5, 5, 'Objeto5', 'Desc5', 'Fuente5', '2024-01-05', 5),
-(6, 6, 6, 'Objeto6', 'Desc6', 'Fuente6', '2024-01-06', 6),
-(7, 7, 7, 'Objeto7', 'Desc7', 'Fuente7', '2024-01-07', 7),
-(8, 8, 8, 'Objeto8', 'Desc8', 'Fuente8', '2024-01-08', 8),
-(9, 9, 9, 'Objeto9', 'Desc9', 'Fuente9', '2024-01-09', 9),
-(10, 10, 10, 'Objeto10', 'Desc10', 'Fuente10', '2024-01-10', 10);
+(4, 4, 4, 'Objeto4', 'Desc4', 'Fuente4', '2024-01-04', 1),
+(5, 5, 5, 'Objeto5', 'Desc5', 'Fuente5', '2024-01-05', 2),
+(6, 6, 6, 'Objeto6', 'Desc6', 'Fuente6', '2024-01-06', 3),
+(7, 7, 7, 'Objeto7', 'Desc7', 'Fuente7', '2024-01-07', 1),
+(8, 8, 8, 'Objeto8', 'Desc8', 'Fuente8', '2024-01-08', 2),
+(9, 9, 9, 'Objeto9', 'Desc9', 'Fuente9', '2024-01-09', 3),
+(10, 10, 10, 'Objeto10', 'Desc10', 'Fuente10', '2024-01-10', 1);
 
 -- Insert: AUDIO
 INSERT INTO AUDIO (id_objeto, id_coleccion, formato, duracion) VALUES
