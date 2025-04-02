@@ -122,3 +122,25 @@ FROM unc_esq_peliculas.departamento
 GROUP BY id_ciudad
 HAVING COUNT(id_departamento) > 1;
 */
+
+-- 18. ¿Cuáles son los distribuidores con más de 3 departamentos?
+/* SELECT id_distribuidor, COUNT(id_departamento) AS cantidad_departamentos
+FROM unc_esq_peliculas.departamento
+GROUP BY id_distribuidor
+HAVING COUNT(id_departamento) > 3;
+*/
+
+-- 19. Seleccionar la cantidad de empleados por jefe
+/* SELECT id_jefe, COUNT(id_empleado) AS cantidad_empleados
+FROM unc_esq_peliculas.empleado
+GROUP BY id_jefe
+ORDER BY id_jefe;
+*/
+
+-- 20. Seleccionar aquellos departamentos donde el sueldo promedio supere los 4500$
+/* SELECT id_departamento, AVG(sueldo) AS sueldo_promedio
+FROM unc_esq_peliculas.empleado
+GROUP BY id_departamento
+HAVING AVG(sueldo) > 4500
+ORDER BY id_departamento;
+*/
