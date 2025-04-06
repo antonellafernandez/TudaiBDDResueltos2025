@@ -2,14 +2,12 @@
 
 -- 1.1. Listar todas las películas que poseen entregas de películas de idioma inglés durante el año 2006. (P)
 /*
-SELECT *
-FROM unc_esq_peliculas.pelicula
-WHERE idioma ILIKE 'Inglés'
-AND codigo_pelicula IN (
-    SELECT id_video
-    FROM unc_esq_peliculas.entrega
-    WHERE EXTRACT(YEAR FROM fecha_entrega) = 2006
-); */
+SELECT DISTINCT p.*
+FROM unc_esq_peliculas.pelicula p
+JOIN unc_esq_peliculas.renglon_entrega re ON p.codigo_pelicula = re.codigo_pelicula
+JOIN unc_esq_peliculas.entrega e ON re.nro_entrega = e.nro_entrega
+WHERE p.idioma ILIKE 'Inglés'
+AND EXTRACT(YEAR FROM fecha_entrega) = 2006; */
 
 -- 1.2. Indicar la cantidad de películas que han sido entregadas en 2006 por un distribuidor nacional.
 -- Trate de resolverlo utilizando ensambles.(P)
