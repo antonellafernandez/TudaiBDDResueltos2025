@@ -138,9 +138,9 @@ ORDER BY id_jefe;
 */
 
 -- 20. Seleccionar aquellos departamentos donde el sueldo promedio supere los 4500$
-/* SELECT id_departamento, AVG(sueldo) AS sueldo_promedio
+/* SELECT id_departamento, id_distribuidor, AVG(sueldo) AS sueldo_promedio
 FROM unc_esq_peliculas.empleado
-GROUP BY id_departamento
+GROUP BY id_departamento, id_distribuidor
 HAVING AVG(sueldo) > 4500
-ORDER BY id_departamento;
+ORDER BY id_departamento, id_distribuidor;
 */

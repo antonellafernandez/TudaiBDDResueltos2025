@@ -24,15 +24,16 @@ AND d.tipo = 'N'; */
 -- mínimo (asociado a la tarea que realiza) no supere el 40% del sueldo máximo. (P)
 -- (Probar con 10% para que retorne valores)
 /*
-SELECT d.id_departamento
+SELECT d.id_departamento, d.id_distribuidor
 FROM unc_esq_peliculas.departamento d
 WHERE NOT EXISTS (
     SELECT 1
     FROM unc_esq_peliculas.empleado e
     JOIN unc_esq_peliculas.tarea t ON e.id_tarea = t.id_tarea
     WHERE e.id_departamento = d.id_departamento
+    AND e.id_distribuidor = d.id_distribuidor
     AND (t.sueldo_maximo - t.sueldo_minimo) <= (t.sueldo_maximo * 0.1)
-); ¡CORREGIR! NO DEVUELVE NADA */
+); */
 
 -- 1.4. Liste las películas que nunca han sido entregadas por un distribuidor nacional.(P)
 /*
