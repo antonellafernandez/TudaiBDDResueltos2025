@@ -7,7 +7,17 @@ FROM unc_esq_peliculas.pelicula p
 JOIN unc_esq_peliculas.renglon_entrega re ON p.codigo_pelicula = re.codigo_pelicula
 JOIN unc_esq_peliculas.entrega e ON re.nro_entrega = e.nro_entrega
 WHERE p.idioma ILIKE 'Inglés'
-AND EXTRACT(YEAR FROM fecha_entrega) = 2006; */
+AND EXTRACT(YEAR FROM fecha_entrega) = 2006;
+
+SELECT titulo
+FROM unc_esq_peliculas.pelicula p
+WHERE idioma = 'Inglés'
+AND codigo_pelicula IN (SELECT codigo_pelicula
+FROM unc_esq_peliculas.renglon_entrega
+WHERE nro_entrega IN(SELECT nro_entrega
+    FROM unc_esq_peliculas.entrega
+    WHERE EXTRACT(YEAR FROM fecha_entrega) = 2006)
+); */
 
 -- 1.2. Indicar la cantidad de películas que han sido entregadas en 2006 por un distribuidor nacional.
 -- Trate de resolverlo utilizando ensambles.(P)
@@ -58,7 +68,7 @@ JOIN unc_esq_peliculas.departamento d ON jefe.id_empleado = d.jefe_departamento
 JOIN unc_esq_peliculas.ciudad c ON d.id_ciudad = c.id_ciudad
 WHERE c.id_pais ILIKE 'AR'; */
 
--- 1.6. Liste el apellido y nombre de los empleados que pertenecen aaquellos departamentos
+-- 1.6. Liste el apellido y nombre de los empleados que pertenecen a aquellos departamentos
 -- de Argentina y donde el jefe de departamento posee una comisión de más del 10% de la que
 -- posee su empleado a cargo.
 /*
@@ -87,8 +97,9 @@ GROUP BY p.genero; */
 SELECT
     e.fecha_entrega,
     e.id_video,
-    COUNT(e.nro_entrega) AS cantidad_entregada
-FROM unc_esq_peliculas.entrega e
+    SUM(re.cantidad) AS cantidad_entregada
+FROM unc_esq_peliculas.renglon_entrega re
+JOIN unc_esq_peliculas.entrega e ON re.nro_entrega = e.nro_entrega
 GROUP BY e.fecha_entrega, e.id_video
 ORDER BY e.fecha_entrega; */
 
@@ -101,6 +112,8 @@ SELECT
 FROM unc_esq_peliculas.ciudad c
 JOIN unc_esq_peliculas.departamento d ON c.id_ciudad = d.id_ciudad
 JOIN unc_esq_peliculas.empleado e ON d.id_departamento = e.id_departamento
+AND d.id_distribuidor = e.id_distribuidor
 WHERE EXTRACT(YEAR FROM AGE(CURRENT_DATE, e.fecha_nacimiento)) >= 18
 GROUP BY c.nombre_ciudad
-HAVING COUNT(e.id_empleado) >= 30; */
+HAVING COUNT(e.id_empleado) >= 30
+ORDER BY c.nombre_ciudad; */
