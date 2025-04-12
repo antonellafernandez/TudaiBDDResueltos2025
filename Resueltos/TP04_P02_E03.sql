@@ -25,10 +25,11 @@ SELECT
     d.nombre,
     d.direccion,
     d.telefono,
-    0 AS nro_inscripcion,
-    'Sin encargado' AS encargado,
-    NULL AS id_distrib_mayorista
+    n.nro_inscripcion,
+    n.encargado,
+    n.id_distrib_mayorista
 FROM unc_esq_peliculas.distribuidor d
+JOIN unc_esq_peliculas.nacional n ON d.id_distribuidor = n.id_distribuidor
 WHERE tipo = 'N';
 
 -- 3.2 Agregar a la definición de la tabla distribuidor_nac, el campo "codigo_pais"
