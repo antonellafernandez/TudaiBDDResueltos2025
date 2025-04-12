@@ -1,0 +1,157 @@
+-- Created by Vertabelo (http://vertabelo.com)
+-- Last modification date: 2025-04-12 20:11:58.771
+
+-- tables
+-- Table: ESQ_VOL_CONTINENTE
+CREATE TABLE ESQ_VOL_CONTINENTE (
+    id_continente int  NOT NULL,
+    nombre_continente varchar  NULL,
+    CONSTRAINT ESQ_VOL_CONTINENTE_pk PRIMARY KEY (id_continente)
+);
+
+-- Table: ESQ_VOL_DIRECCION
+CREATE TABLE ESQ_VOL_DIRECCION (
+    id_direccion int  NOT NULL,
+    calle varchar(40)  NULL,
+    codigo_postal varchar(12)  NULL,
+    provincia varchar(25)  NULL,
+    ciudad varchar(30)  NOT NULL,
+    id_pais char(2)  NOT NULL,
+    CONSTRAINT ESQ_VOL_DIRECCION_pk PRIMARY KEY (id_direccion)
+);
+
+-- Table: ESQ_VOL_HISTORICO
+CREATE TABLE ESQ_VOL_HISTORICO (
+    nro_voluntario int  NOT NULL,
+    fecha_inicio date  NOT NULL,
+    fecha_fin date  NOT NULL,
+    id_tarea varchar(10)  NOT NULL,
+    id_institucion int  NULL,
+    CONSTRAINT ESQ_VOL_HISTORICO_pk PRIMARY KEY (fecha_inicio,nro_voluntario)
+);
+
+-- Table: ESQ_VOL_INSTITUCION
+CREATE TABLE ESQ_VOL_INSTITUCION (
+    id_institucion int  NOT NULL,
+    nombre_institucion varchar(60)  NOT NULL,
+    id_direccion int  NULL,
+    id_director int  NULL,
+    CONSTRAINT ESQ_VOL_INSTITUCION_pk PRIMARY KEY (id_institucion)
+);
+
+-- Table: ESQ_VOL_PAIS
+CREATE TABLE ESQ_VOL_PAIS (
+    id_pais char(2)  NOT NULL,
+    nombre_pais varchar  NULL,
+    id_continente int  NOT NULL,
+    CONSTRAINT ESQ_VOL_PAIS_pk PRIMARY KEY (id_pais)
+);
+
+-- Table: ESQ_VOL_TAREA
+CREATE TABLE ESQ_VOL_TAREA (
+    id_tarea varchar(10)  NOT NULL,
+    nombre_tarea varchar(40)  NOT NULL,
+    min_horas int  NULL,
+    max_horas int  NULL,
+    CONSTRAINT ESQ_VOL_TAREA_pk PRIMARY KEY (id_tarea)
+);
+
+-- Table: ESQ_VOL_VOLUNTARIO
+CREATE TABLE ESQ_VOL_VOLUNTARIO (
+    nro_voluntario int  NOT NULL,
+    nombre varchar(20)  NULL,
+    apellido varchar(25)  NOT NULL,
+    e_mail varchar(25)  NOT NULL,
+    telefono varchar(20)  NULL,
+    fecha_nacimiento date  NOT NULL,
+    id_tarea varchar(10)  NOT NULL,
+    horas_aportadas decimal(8,2)  NULL,
+    porcentaje decimal(2,2)  NULL,
+    id_institucion int  NULL,
+    id_coordinador int  NULL,
+    CONSTRAINT ESQ_VOL_VOLUNTARIO_pk PRIMARY KEY (nro_voluntario)
+);
+
+-- foreign keys
+-- Reference: ESQ_VOL_DIRECCION_ESQ_VOL_PAIS (table: ESQ_VOL_DIRECCION)
+ALTER TABLE ESQ_VOL_DIRECCION ADD CONSTRAINT ESQ_VOL_DIRECCION_ESQ_VOL_PAIS
+    FOREIGN KEY (id_pais)
+    REFERENCES ESQ_VOL_PAIS (id_pais)  
+    NOT DEFERRABLE 
+    INITIALLY IMMEDIATE
+;
+
+-- Reference: ESQ_VOL_HISTORICO_ESQ_VOL_INSTITUCION (table: ESQ_VOL_HISTORICO)
+ALTER TABLE ESQ_VOL_HISTORICO ADD CONSTRAINT ESQ_VOL_HISTORICO_ESQ_VOL_INSTITUCION
+    FOREIGN KEY (id_institucion)
+    REFERENCES ESQ_VOL_INSTITUCION (id_institucion)  
+    NOT DEFERRABLE 
+    INITIALLY IMMEDIATE
+;
+
+-- Reference: ESQ_VOL_HISTORICO_ESQ_VOL_TAREA (table: ESQ_VOL_HISTORICO)
+ALTER TABLE ESQ_VOL_HISTORICO ADD CONSTRAINT ESQ_VOL_HISTORICO_ESQ_VOL_TAREA
+    FOREIGN KEY (id_tarea)
+    REFERENCES ESQ_VOL_TAREA (id_tarea)  
+    NOT DEFERRABLE 
+    INITIALLY IMMEDIATE
+;
+
+-- Reference: ESQ_VOL_HISTORICO_ESQ_VOL_VOLUNTARIO (table: ESQ_VOL_HISTORICO)
+ALTER TABLE ESQ_VOL_HISTORICO ADD CONSTRAINT ESQ_VOL_HISTORICO_ESQ_VOL_VOLUNTARIO
+    FOREIGN KEY (nro_voluntario)
+    REFERENCES ESQ_VOL_VOLUNTARIO (nro_voluntario)  
+    NOT DEFERRABLE 
+    INITIALLY IMMEDIATE
+;
+
+-- Reference: ESQ_VOL_INSTITUCION_ESQ_VOL_DIRECCION (table: ESQ_VOL_INSTITUCION)
+ALTER TABLE ESQ_VOL_INSTITUCION ADD CONSTRAINT ESQ_VOL_INSTITUCION_ESQ_VOL_DIRECCION
+    FOREIGN KEY (id_direccion)
+    REFERENCES ESQ_VOL_DIRECCION (id_direccion)  
+    NOT DEFERRABLE 
+    INITIALLY IMMEDIATE
+;
+
+-- Reference: ESQ_VOL_INSTITUCION_ESQ_VOL_VOLUNTARIO (table: ESQ_VOL_INSTITUCION)
+ALTER TABLE ESQ_VOL_INSTITUCION ADD CONSTRAINT ESQ_VOL_INSTITUCION_ESQ_VOL_VOLUNTARIO
+    FOREIGN KEY (id_director)
+    REFERENCES ESQ_VOL_VOLUNTARIO (nro_voluntario)  
+    NOT DEFERRABLE 
+    INITIALLY IMMEDIATE
+;
+
+-- Reference: ESQ_VOL_PAIS_ESQ_VOL_CONTINENTE (table: ESQ_VOL_PAIS)
+ALTER TABLE ESQ_VOL_PAIS ADD CONSTRAINT ESQ_VOL_PAIS_ESQ_VOL_CONTINENTE
+    FOREIGN KEY (id_continente)
+    REFERENCES ESQ_VOL_CONTINENTE (id_continente)  
+    NOT DEFERRABLE 
+    INITIALLY IMMEDIATE
+;
+
+-- Reference: ESQ_VOL_VOLUNTARIO_ESQ_VOL_INSTITUCION (table: ESQ_VOL_VOLUNTARIO)
+ALTER TABLE ESQ_VOL_VOLUNTARIO ADD CONSTRAINT ESQ_VOL_VOLUNTARIO_ESQ_VOL_INSTITUCION
+    FOREIGN KEY (id_institucion)
+    REFERENCES ESQ_VOL_INSTITUCION (id_institucion)  
+    NOT DEFERRABLE 
+    INITIALLY IMMEDIATE
+;
+
+-- Reference: ESQ_VOL_VOLUNTARIO_ESQ_VOL_TAREA (table: ESQ_VOL_VOLUNTARIO)
+ALTER TABLE ESQ_VOL_VOLUNTARIO ADD CONSTRAINT ESQ_VOL_VOLUNTARIO_ESQ_VOL_TAREA
+    FOREIGN KEY (id_tarea)
+    REFERENCES ESQ_VOL_TAREA (id_tarea)  
+    NOT DEFERRABLE 
+    INITIALLY IMMEDIATE
+;
+
+-- Reference: ESQ_VOL_VOLUNTARIO_ESQ_VOL_VOLUNTARIO (table: ESQ_VOL_VOLUNTARIO)
+ALTER TABLE ESQ_VOL_VOLUNTARIO ADD CONSTRAINT ESQ_VOL_VOLUNTARIO_ESQ_VOL_VOLUNTARIO
+    FOREIGN KEY (id_coordinador)
+    REFERENCES ESQ_VOL_VOLUNTARIO (nro_voluntario)  
+    NOT DEFERRABLE 
+    INITIALLY IMMEDIATE
+;
+
+-- End of file.
+
