@@ -162,28 +162,35 @@ ALTER TABLE ESQ_VOL_VOLUNTARIO ADD CONSTRAINT ESQ_VOL_VOLUNTARIO_ESQ_VOL_VOLUNTA
 
 -- A. No puede haber voluntarios de más de 70 años. Aquí como la edad es un dato que
 -- depende de la fecha actual lo deberíamos controlar de otra manera.
+-- CHECK atributo
 ALTER TABLE ESQ_VOL_VOLUNTARIO
 ADD CONSTRAINT ck_menor_70
 CHECK (EXTRACT(YEAR FROM AGE(CURRENT_DATE, fecha_nacimiento)) < 70);
 
 -- A.Bis - Controlar que los voluntarios deben ser mayores a 18 años.
+-- CHECK atributo
 ALTER TABLE ESQ_VOL_VOLUNTARIO
 ADD CONSTRAINT ck_mayor_18
 CHECK (EXTRACT(YEAR FROM AGE(CURRENT_DATE, fecha_nacimiento)) >= 18);
 
 -- B. Ningún voluntario puede aportar más horas que las de su coordinador.
-CREATE ASSERTION horas_aportadas
+-- CHECK tabla
+ALTER TABLE ESQ_VOL_VOLUNTARIO ADD CONSTRAINT ck_voluntario_horas_aportadas
 CHECK (
     NOT EXISTS (
-       SELECT 1
-       FROM ESQ_VOL_VOLUNTARIO v
-       JOIN ESQ_VOL_VOLUNTARIO coordinador ON v.id_coordinador = coordinador.nro_voluntario
-       WHERE v.horas_aportadas > c.horas_aportadas
+        SELECT 1
+        FROM ESQ_VOL_VOLUNTARIO v
+        WHERE v.horas_aportadas >= (
+            SELECT horas_aportadas
+            FROM ESQ_VOL_VOLUNTARIO c
+            WHERE c.nro_voluntario = v.id_coordinador
+        )
     )
 );
 
 -- C. Las horas aportadas por los voluntarios deben estar dentro de los valores máximos y
 -- mínimos consignados en la tarea.
+-- CHECK global
 CREATE ASSERTION horas_aportadas_min_max
 CHECK (
     NOT EXISTS (
@@ -195,17 +202,22 @@ CHECK (
 );
 
 -- D. Todos los voluntarios deben realizar la misma tarea que su coordinador.
-CREATE ASSERTION tarea_coordinador
+-- CHECK tabla
+ALTER TABLE ESQ_VOL_VOLUNTARIO ADD CONSTRAINT ck_tarea_coordinador
 CHECK (
     NOT EXISTS (
-       SELECT 1
-       FROM ESQ_VOL_VOLUNTARIO v
-       JOIN ESQ_VOL_VOLUNTARIO coordinador ON v.nro_voluntario = coordinador.nro_voluntario
-       WHERE v.id_tarea <> coordinador.id_tarea
+        SELECT 1
+        FROM ESQ_VOL_VOLUNTARIO v
+        WHERE v.id_tarea <> (
+            SELECT id_tarea
+            FROM ESQ_VOL_VOLUNTARIO c
+            WHERE c.nro_voluntario = v.id_coordinador
+        )
     )
 );
 
 -- E. Los voluntarios no pueden cambiar de institución más de tres veces al año.
+-- CHECK tabla??
 CREATE ASSERTION cambio_institucion
 CHECK (
     NOT EXISTS (
@@ -219,9 +231,10 @@ CHECK (
 ); -- CORREGIR
 
 -- F. En el histórico, la fecha de inicio debe ser siempre menor que la fecha de finalización.
+-- CHECK tupla
 ALTER TABLE ESQ_VOL_HISTORICO
 ADD CONSTRAINT ck_fecha_inicio_menor_fin
-CHECK (fecha_inicio < fecha_fin)
+CHECK (fecha_inicio < fecha_fin);
 
 /*
         RESTRICCIÓN     TABLA/S                 ATRIBUTO/S                          TIPO DE RESTRICCIÓN
@@ -229,15 +242,15 @@ A.      CHECK           VOLUNTARIO              fecha_nacimiento                
 
 A.Bis   CHECK           VOLUNTARIO              fecha_nacimiento                    Atributo
 
-B.      ASSERTION       VOLUNTARIO              id_coordinador, nro_voluntario,     Global
+B.      ASSERTION       VOLUNTARIO              id_coordinador, nro_voluntario,     Tabla
                                                 horas_aportadas
 
-C.      ASSERTION       VOLUNTARIO, TAREA       id_tarea, horas_aportadas,          Global
+C.      CHECK           VOLUNTARIO, TAREA       id_tarea, horas_aportadas,          Global
                                                 min_horas, max_horas
 
-D.      ASSERTION       VOLUNTARIO              nro_voluntario, id_tarea            Global
+D.      CHECK           VOLUNTARIO              nro_voluntario, id_tarea            Tabla
 
-E.      ASSERTION       VOLUNTARIO, HISTORICO   ???                                 Global
+E.      CHECK           VOLUNTARIO, HISTORICO   ???                                 Tabla
 
 F.      CHECK           HISTORICO               fecha_inicio, fecha_fin             Tupla
 */

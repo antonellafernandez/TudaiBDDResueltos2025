@@ -104,14 +104,26 @@ INSERT INTO TP5_P1_EJ2_AUSPICIO VALUES (22, 'CocaCola', 'A ', 5);
 -- i) simple, ii) parcial, o iii) full:
 
     -- a. ERROR! MATCH FULL does not allow mixing of null and nonnull key values.
-    -- (tipo_empleado, nro_empleado) MATCH FULL pide que ambos sean nulos o no nulos.
+    -- i) simple, con que haya un null acepta.
+    -- ii) parcial pide que la clave exista.
+    -- iii) (tipo_empleado, nro_empleado) MATCH FULL pide que ambos sean nulos o no nulos.
     insert into TP5_P1_EJ2_AUSPICIO values (1, 'Dell' , 'B', null);
 
-    -- b. Inserta OK
+    -- b. Inserta OK -> TODOS
+    -- i) simple
+    -- ii) parcial
+    -- iii) full
     insert into TP5_P1_EJ2_AUSPICIO values (2, 'Oracle', null, null);
 
     -- c. ERROR! (tipo_empleado, nro_empleado)=(A, 3) no existe
+    -- NO ACEPTA NINGUNA
+    -- i) simple
+    -- ii) parcial
+    -- iii) full
     insert into TP5_P1_EJ2_AUSPICIO values (3, 'Google', 'A ', 3);
 
     -- d. ERROR! MATCH FULL
+    -- i) simple acepta -> uno es null
+    -- ii) parcial no acepta -> el 3 no existe, aceptaría con un id_empleado que exista
+    -- iii) full no acepta
     insert into TP5_P1_EJ2_AUSPICIO values (1, 'HP', null, 3);

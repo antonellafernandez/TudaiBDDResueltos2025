@@ -59,17 +59,40 @@ ALTER TABLE P5P2E5_VENTA ADD CONSTRAINT FK_P5P2E5_VENTA_PRENDA
 -- End of file.
 
 -- Ejercicio 5
-
 -- A. Los descuentos en las ventas son porcentajes y deben estar entre 0 y 100.
-
+-- CHECK atributo
+ALTER TABLE P5P2E5_VENTA ADD CONSTRAINT ck_descuentos
+CHECK (descuento >= 0 AND descuento <= 100);
 
 -- B. Los descuentos realizados en fechas de liquidación deben superar el 30%.
-    
+-- CHECK global
+CREATE ASSERTION desc_liq_mayor_30
+CHECK (
+    NOT EXISTS (
+        SELECT 1
+        FROM P5P2E5_VENTA v
+        JOIN P5P2E5_FECHA_LIQ f ON EXTRACT(DAY FROM v.fecha) = f.dia_liq
+        AND EXTRACT(MONTH FROM v.fecha) = f.mes_liq
+        WHERE v.descuento <= 30
+    )
+);
 
 -- C. Las liquidaciones de Julio y Diciembre no deben superar los 5 días.
-
+-- CHECK tabla
+ALTER TABLE P5P2E5_FECHA_LIQ ADD CONSTRAINT ck_liq_jul_dic_menor_5
+CHECK (
+    (mes_liq = 7 OR mes_liq = 12)
+    AND cant_dias < 5
+);
 
 -- D. Las prendas de categoría ‘oferta’ no tienen descuentos.
-
-
-
+-- CHECK global
+CREATE ASSERTION oferta_sin_descuento
+CHECK (
+    NOT EXISTS (
+        SELECT 1
+        FROM P5P2E5_VENTA v
+        JOIN P5P2E5_PRENDA p ON v.id_prenda = p.id_prenda
+        WHERE p.categoria = 'oferta' AND v.descuento > 0
+    )
+);
