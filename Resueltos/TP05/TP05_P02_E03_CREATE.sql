@@ -64,10 +64,10 @@ CHECK (EXTRACT(YEAR FROM fecha_publicacion) >= 2010);
 CREATE ASSERTION ck_cant_palabras_claves_max
 CHECK (
     NOT EXISTS (
-        SELECT 1
+        SELECT COUNT(id_articulo)
         FROM P5P2E3_CONTIENE
         GROUP BY idioma, cod_palabra
-        HAVING COUNT(*) > 5
+        HAVING COUNT(id_articulo) > 5
     )
 );
 
@@ -77,7 +77,7 @@ CHECK (
 CREATE ASSERTION ck_cantidad_palabras
 CHECK (
     NOT EXISTS (
-        SELECT 1
+        SELECT id_articulo
         FROM p5p2e3_articulo
         WHERE (nacionalidad LIKE 'Argentina' AND
         id_articulo IN (
