@@ -124,7 +124,7 @@ CREATE OR REPLACE FUNCTION verificar_contratacion() RETURNS trigger AS $$
             AND cod_tipo_serv = NEW.cod_tipo_serv
         ) THEN
         RAISE EXCEPTION 'El servicio % de tipo %  ya está contratado en modalidad única', NEW.id_servicio , NEW.cod_tipo_serv;
-    END IF;
+        END IF;
     END IF;
     RETURN NEW;
 END $$ LANGUAGE 'plpgsql';
