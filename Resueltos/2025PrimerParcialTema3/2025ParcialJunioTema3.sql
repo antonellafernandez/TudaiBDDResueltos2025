@@ -203,12 +203,56 @@ CREATE ASSERTION chk_turnos CHECK NOT EXISTS (
     SELECT 1
     FROM TURNO t
     JOIN PROFESIONAL pr ON (t.id_profesional = pr.id_profesional)
+    JOIN ESPECIALIDAD e ON (pr.id_tipo_esp = e.id_tipo_esp AND pr.id_especialidad = e.id_especialidad)
     JOIN CONSULTA c ON (t.id_turno = c.id_turno)
     WHERE c.id_obra_social IS NOT NULL
     AND UPPER(e.nombre) = 'CLINICA MEDICA'
-    GROUP BY t.id_paciene, EXTRACT(YEAR FROM t.fecha)
+    GROUP BY t.id_paciente, EXTRACT(YEAR FROM t.fecha)
     HAVING COUNT(DISTINCT c.id_obra_social) > 1
-); */
+);
+
+TABLA               INSERT              UPDATE                                  DELETE
+TURNO               SI                  SI id_paciente, id_profesional,fecha    NO
+ESPECIALIDAD        SI                  SI id_tipo_esp, id_especialidad         NO
+PROFESIONAL         SI                  SI id_tipo_esp, id_especialidad         NO
+CONSULTA            SI                  SI id_turno, id_obra_social             NO
+
+// Vista
+CREATE OR REPLACE VIEW v_t3 AS
+SELECT 1
+FROM TURNO t
+JOIN PROFESIONAL pr ON (t.id_profesional = pr.id_profesional)
+JOIN ESPECIALIDAD e ON (pr.id_tipo_esp = e.id_tipo_esp AND pr.id_especialidad = e.id_especialidad)
+JOIN CONSULTA c ON (t.id_turno = c.id_turno)
+WHERE c.id_obra_social IS NOT NULL
+AND UPPER(e.nombre) = 'CLINICA MEDICA'
+GROUP BY t.id_paciente, EXTRACT(YEAR FROM t.fecha)
+HAVING COUNT(DISTINCT c.id_obra_social) > 1;
+
+// Triggers
+CREATE OR REPLACE TRIGGER tr_turno
+BEFORE INSERT OR UPDATE OF id_paciente, id_profesional, fecha ON TURNO
+FOR EACH ROW EXECUTE FUNCTION fn_P7T3();
+
+CREATE OR REPLACE TRIGGER tr_especialidad
+BEFORE INSERT OR UPDATE OF id_tipo_esp, id_especialidad ON ESPECIALIDAD
+FOR EACH ROW EXECUTE FUNCTION fn_P7T3();
+
+CREATE OR REPLACE TRIGGER tr_profesional
+BEFORE INSERT OR UPDATE OF id_tipo_esp, id_especialidad ON PROFESIONAL
+FOR EACH ROW EXECUTE FUNCTION fn_P7T3();
+
+CREATE OR REPLACE TRIGGER tr_consulta
+BEFORE INSERT OR UPDATE OF id_turno, id_obra_social ON CONSULTA
+FOR EACH ROW EXECUTE FUNCTION fn_P7T3();
+
+// Función
+CREATE OR REPLACE FUNCTION fn_P7T3() RETURNS TRIGGER AS $$
+BEGIN
+    IF (EXISTS (SELECT 1 FROM v_t3)) THEN RAISE EXCEPTION 'Error';
+    END IF;
+    RETURN NEW;
+END; $$ LANGUAGE 'plpgsql'; */
 
 /* Adicional ChatGPT - Construya una vista actualizable con el identificador, fecha y estado de los turnos que
 sean anteriores al 31/12/25 o que tengan asociado al menos una consulta obra social asignada.
