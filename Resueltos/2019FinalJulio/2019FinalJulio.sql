@@ -122,39 +122,35 @@ b) Implemente de forma completa y eficiente (en PostgreSQL) una función asociad
 c) Provea una operación concreta sobre la BD que despertaría el trigger definido en 4) b) y ecplique cómo funcionaría dicha
 activación. */
 
--- INSERT, UPDATE           PROYECTO (id_sector, director)
--- INSERT, UPDATE, DELETE   TRABAJA
+-- INSERT, UPDATE           PROYECTO id_sector, director
+-- INSERT, UPDATE, DELETE   TRABAJA id_ingeniero, id_sector, nro_proyecto
 
-CREATE OR REPLACE FUNCTION fn_validar_proyecto()
-RETURNS TRIGGER AS $$
-DECLARE
-    proyectos_finalizados INTEGER;
+-- Vista
+CREATE OR REPLACE VIEW v_P4 AS
+SELECT p.id_sector, p.director, COUNT(DISTINCT p2.nro_proyecto) AS cant_finalizados
+FROM PROYECTO p
+LEFT JOIN TRABAJA t ON t.id_ingeniero = p.director AND t.id_sector = p.id_sector
+LEFT JOIN PROYECTO p2 ON t.id_sector = p2.id_sector AND t.nro_proyecto = p2.nro_proyecto
+WHERE p2.fecha_fin IS NOT NULL
+GROUP BY p.id_sector, p.director
+HAVING COUNT(DISTINCT p2.nro_proyecto) < 5;
+
+-- Función
+CREATE OR REPLACE FUNCTION fn_P4() RETURNS TRIGGER AS $$
 BEGIN
-    -- Contar proyectos finalizados en el mismo sector donde el director ha trabajado
-    SELECT COUNT(*) INTO proyectos_finalizados
-    FROM proyecto p2
-    JOIN trabaja t ON p2.id_sector = t.id_sector AND p2.nro_proyecto = t.nro_proyecto
-    WHERE t.id_ingeniero = NEW.director
-      AND p2.id_sector = NEW.id_sector
-      AND p2.fecha_fin IS NOT NULL;
-
-    IF proyectos_finalizados < 5 THEN
-        RAISE EXCEPTION
-        'El director % debe haber trabajado al menos en 5 proyectos finalizados en el sector %',
-        NEW.director, NEW.id_sector;
+    IF EXISTS(SELECT 1 FROM v_P4) THEN RAISE EXCEPTION 'Error';
     END IF;
-
     RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+END; $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER tr_trabaja
-BEFORE INSERT OR UPDATE ON PROYECTO
-FOR EACH ROW EXECUTE FUNCTION fn_validar_proyecto();
+-- Triggers
+CREATE OR REPLACE TRIGGER tr_proyecto
+BEFORE INSERT OR UPDATE OF id_sector, director ON PROYECTO
+FOR EACH ROW EXECUTE FUNCTION fn_P4();
 
-CREATE TRIGGER tr_trabaja
-BEFORE INSERT OR UPDATE OR DELETE ON TRABAJA
-FOR EACH ROW EXECUTE FUNCTION fn_validar_trabaja();
+CREATE OR REPLACE TRIGGER tr_trabaja
+BEFORE INSERT OR UPDATE OF id_ingeniero, id_sector, nro_proyecto OR DELETE ON TRABAJA
+FOR EACH ROW EXECUTE FUNCTION fn_P4();
 
 /* 5) Construya una vista actualizable con el identificador, nombre, presupuesto de los poyectos que finalicen antes del
 31/12/19 o que tengan uno o más ingenieros trrabajando más de 40 horas semanales.

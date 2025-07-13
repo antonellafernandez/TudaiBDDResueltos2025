@@ -217,7 +217,7 @@ ESPECIALIDAD        SI                  SI id_tipo_esp, id_especialidad         
 PROFESIONAL         SI                  SI id_tipo_esp, id_especialidad         NO
 CONSULTA            SI                  SI id_turno, id_obra_social             NO
 
-// Vista
+-- Vista
 CREATE OR REPLACE VIEW v_t3 AS
 SELECT 1
 FROM TURNO t
@@ -229,7 +229,7 @@ AND UPPER(e.nombre) = 'CLINICA MEDICA'
 GROUP BY t.id_paciente, EXTRACT(YEAR FROM t.fecha)
 HAVING COUNT(DISTINCT c.id_obra_social) > 1;
 
-// Triggers
+-- Triggers
 CREATE OR REPLACE TRIGGER tr_turno
 BEFORE INSERT OR UPDATE OF id_paciente, id_profesional, fecha ON TURNO
 FOR EACH ROW EXECUTE FUNCTION fn_P7T3();
@@ -246,7 +246,7 @@ CREATE OR REPLACE TRIGGER tr_consulta
 BEFORE INSERT OR UPDATE OF id_turno, id_obra_social ON CONSULTA
 FOR EACH ROW EXECUTE FUNCTION fn_P7T3();
 
-// Función
+-- Función
 CREATE OR REPLACE FUNCTION fn_P7T3() RETURNS TRIGGER AS $$
 BEGIN
     IF (EXISTS (SELECT 1 FROM v_t3)) THEN RAISE EXCEPTION 'Error';
