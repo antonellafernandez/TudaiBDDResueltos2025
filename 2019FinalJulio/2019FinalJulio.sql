@@ -119,7 +119,7 @@ CREATE ASSERTION AS_e3c CHECK(NOT EXISTS(
 /* 4) a) Escriba en PostgreSQL las declaraciones de todos los triggers que considere necesario definir para poder satisfacer la
 restricción 3) b).
 b) Implemente de forma completa y eficiente (en PostgreSQL) una función asociada a las inserciones.
-c) Provea una operación concreta sobre la BD que despertaría el trigger definido en 4) b) y ecplique cómo funcionaría dicha
+c) Provea una operación concreta sobre la BD que despertaría el trigger definido en 4) b) y explique cómo funcionaría dicha
 activación. */
 
 -- INSERT, UPDATE           PROYECTO id_sector, director
