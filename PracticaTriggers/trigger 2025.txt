@@ -1,0 +1,289 @@
+--tp6 ejercicio 1
+--C. Cada palabra clave puede aparecer como máximo en 5 artículos.
+SELECT 1
+FROM p5p1e1_contiene
+GROUP BY id_articulo
+HAVING count(*) > 5;
+
+--tabla       insert       update                 delete
+--contiene      si           si(idioma,cod_palabra)        no
+
+CREATE OR REPLACE FUNCTION fn_control_palabra_contiene()
+    RETURNS TRIGGER AS $$
+        BEGIN
+            IF((SELECT count(*)
+               FROM p5p1e1_contiene
+               WHERE idioma = NEW.idioma AND cod_palabra = NEW.cod_palabra) > 4) THEN
+                RAISE EXCEPTION 'La palabra clave ya aparece en 5 artículos distintos';
+            END IF;
+            RETURN NEW;
+        END;
+    $$ LANGUAGE 'plpgsql';
+
+CREATE TRIGGER tr_control_palabra_contiene
+    BEFORE INSERT OR UPDATE OF idioma,cod_palabra
+    ON p5p1e1_contiene
+    FOR EACH ROW EXECUTE PROCEDURE fn_control_palabra_contiene();
+
+--D Sólo los autores argentinos pueden publicar artículos que contengan más de 10 palabras
+--claves, pero con un tope de 15 palabras, el resto de los autores sólo pueden publicar
+--artículos que contengan hasta 10 palabras claves.
+SELECT 1
+FROM p5p1e1_articulo
+WHERE nacionalidad = 'ARGENTINA'
+AND id_articulo IN (SELECT id_articulo
+                    FROM p5p1e1_contiene
+                    GROUP BY id_articulo
+                    HAVING count(*) > 15) OR
+                                          nacionalidad != 'ARGENTINA'
+                                          AND id_articulo IN(SELECT id_articulo
+                                                               FROM p5p1e1_contiene
+                                                               GROUP BY id_articulo
+                                                               HAVING count(*) > 10);
+--tabla       insert       update                 delete
+--contiene      si           si(id_articulo)        no
+--articulo      no           si(nacionalidad)       no
+
+CREATE OR REPLACE FUNCTION fn_control_palabra_nacionalidad_contiene()
+    RETURNS TRIGGER AS $$
+        DECLARE a_nacionalidad varchar;
+        BEGIN
+            SELECT nacionalidad INTO a_nacionalidad
+            FROM p5p1e1_articulo
+            WHERE id_articulo = NEW.id_articulo;
+            IF (a_nacionalidad = 'ARGENTINA') THEN
+                IF((SELECT count(*)
+                   FROM p5p1e1_contiene
+                   WHERE id_articulo = NEW.id_articulo) > 14) THEN
+                RAISE EXCEPTION 'no puede haber mas de 15 palabras';
+                END IF;
+            END IF;
+            IF (a_nacionalidad != 'ARGENTINA') THEN --o poner un else directo?
+                IF((SELECT count(*)
+                   FROM p5p1e1_contiene
+                   WHERE id_articulo = NEW.id_articulo) > 9) THEN
+                   RAISE EXCEPTION 'no puede haber mas de 10 palabras';
+                END IF;
+            END IF;
+            RETURN NEW;
+        END;
+    $$LANGUAGE 'plpgsql';
+
+
+CREATE TRIGGER tr_control_palabra_nacionalidad_contiene
+    BEFORE INSERT OR UPDATE OF id_articulo
+    ON p5p1e1_contiene
+    FOR EACH ROW EXECUTE PROCEDURE fn_control_palabra_nacionalidad_contiene();
+
+CREATE OR REPLACE FUNCTION fn_control_palabra_nacionalidad_articulo()
+    RETURNS TRIGGER AS $$
+        BEGIN
+            IF (NEW.nacionalidad = 'ARGENTINA') THEN
+                IF((SELECT count(*)
+                   FROM p5p1e1_contiene
+                   WHERE id_articulo = NEW.id_articulo) > 14) THEN
+                RAISE EXCEPTION 'no puede haber mas de 15 palabras';
+                END IF;
+            END IF;
+            IF (NEW.nacionalidad != 'ARGENTINA') THEN --o poner un else directo?
+                IF((SELECT count(*)
+                   FROM p5p1e1_contiene
+                   WHERE id_articulo = NEW.id_articulo) > 9) THEN
+                   RAISE EXCEPTION 'no puede haber mas de 10 palabras';
+                END IF;
+            END IF;
+            RETURN NEW;
+        END;
+    $$LANGUAGE 'plpgsql';
+
+CREATE TRIGGER tr_control_palabra_nacionalidad_articulo
+    BEFORE UPDATE OF nacionalidad
+    ON p5p1e1_articulo
+    FOR EACH ROW EXECUTE PROCEDURE fn_control_palabra_nacionalidad_articulo();
+
+--B. Cada imagen no debe tener más de 5 procesamientos.
+SELECT 1
+FROM procesamiento
+GROUP BY id_paciente, id_imagen
+HAVING count(*) > 5;
+
+--tabla           insert       update                         delete
+--procesamiento     si           si(id_paciente,id_imagen)      no
+
+CREATE OR REPLACE FUNCTION fn_control_imagen_procesamiento()
+    RETURNS TRIGGER AS $$BEGIN
+        IF((SELECT count(*)
+           FROM procesamiento
+           WHERE id_paciente = NEW.id_paciente AND id_imagen = NEW.id_imagen) > 4) THEN
+            RAISE EXCEPTION 'ya hay 5 procesamientos de esta imagen';
+        END IF;
+        RETURN NEW;
+    END;
+    $$LANGUAGE 'plpgsql';
+
+CREATE TRIGGER tr_control_imagen_procesamiento
+    BEFORE INSERT OR UPDATE OF id_paciente,id_imagen
+    ON procesamiento
+    FOR EACH ROW EXECUTE PROCEDURE fn_control_imagen_procesamiento();
+
+--C. Agregue dos atributos de tipo fecha a las tablas Imagen_medica y Procesamiento, una
+--indica la fecha de la imagen y la otra la fecha de procesamiento de la imagen y controle
+--que la segunda no sea menor que la primera.
+CREATE ASSERTION
+SELECT 1
+FROM imagen_medica i
+JOIN procesamiento p ON (i.id_paciente = p.id_paciente AND i.id_imagen = p.id_imagen)
+WHERE i.fecha_imagen < p.fecha_procesamiento;
+
+--tabla             insert       update                                           delete
+--imagen_medica       NO           SI(fecha_imagen)                                 NO
+--procesamiento       SI           SI(id_paciente,id_imagen,fecha_procesamiento)    NO
+
+CREATE OR REPLACE FUNCTION fn_fecha_imagen_medica()
+    RETURNS TRIGGER AS $$
+        DECLARE fecha_proc DATE;
+        BEGIN
+            SELECT fecha_procesamiento INTO fecha_proc
+            FROM procesamiento
+            WHERE id_paciente = NEW.id_paciente AND id_imagen = NEW.id_imagen;
+            IF(NEW.fecha_imagen < fecha_proc) THEN
+                RAISE EXCEPTION 'la fecha de la imagen no puede ser mayor que la del procesamiento';
+            end if;
+            RETURN NEW;
+        END;
+    $$ LANGUAGE plpgsql;
+
+CREATE TRIGGER tr_fecha_imagen_medica
+    BEFORE UPDATE OF fecha_imagen
+    ON imagen_medica
+    FOR EACH ROW EXECUTE PROCEDURE fn_fecha_imagen_medica();
+
+CREATE OR REPLACE FUNCTION fn_fecha_procesamiento()
+    RETURNS TRIGGER AS $$
+        DECLARE fecha_img DATE;
+        BEGIN
+            SELECT fecha_imagen INTO fecha_img
+            FROM imagen_medica
+            WHERE id_paciente = NEW.id_paciente AND id_imagen = NEW.id_imagen;
+            IF(NEW.fecha_procesamiento < fecha_img) THEN
+                RAISE EXCEPTION 'la fecha de la procesamiento no puede ser menor que la de la imagen';
+            end if;
+            RETURN NEW;
+        END;
+    $$ LANGUAGE plpgsql;
+
+CREATE TRIGGER tr_fecha_procesamiento
+    BEFORE INSERT OR UPDATE OF fecha_procesamiento, id_paciente, id_imagen
+    ON procesamiento
+    FOR EACH ROW EXECUTE PROCEDURE fn_fecha_imagen_medica();
+
+
+--D. Cada paciente sólo puede realizar dos FLUOROSCOPIA anuales.
+SELECT 1
+FROM imagen_medica
+WHERE modalidad = 'FLUROSCOPIA'
+GROUP BY id_paciente, EXTRACT(YEAR FROM fecha_imagen) --porque no va id_imagen?
+HAVING count(*) > 2;
+
+--tabla             insert       update                                       delete
+--imagen_medica        si          si(modalidad,id_paciente, fecha_imagen)      no
+
+CREATE OR REPLACE FUNCTION fn_fluroscopia_anual_imagen_medica()
+    RETURNS TRIGGER AS $$
+            BEGIN
+                IF((SELECT count(*)
+                    FROM imagen_medica
+                    WHERE id_paciente = NEW.id_paciente AND
+                          EXTRACT(YEAR FROM fecha_imagen) = EXTRACT(YEAR FROM NEW.fecha_imagen)) > 1) THEN
+                    RAISE EXCEPTION 'ya se hicieron dos fluoroscopias anuales';
+                END IF;
+                RETURN NEW;
+            END;
+    $$LANGUAGE plpgsql;
+
+CREATE TRIGGER tr_fluroscopia_anual_imagen_medica
+    BEFORE INSERT OR UPDATE OF modalidad,id_paciente,fecha_imagen
+    ON imagen_medica
+    FOR EACH ROW
+    WHEN (NEW.modalidad = 'FLUROSCOPIA')
+    EXECUTE PROCEDURE fn_fluroscopia_anual_imagen_medica();
+
+
+--E. No se pueden aplicar algoritmos de costo computacional “O(n)” a imágenes de FLUOROSCOPIA
+CREATE ASSERTION
+SELECT 1
+FROM algortimo a
+JOIN procesamiento p ON (a.id_algoritmo = p.id_algoritmo)
+JOIN imagen_medica i ON (p.id_paciente = i.id_paciente AND p.id_imagen = i.id_imagen)
+WHERE a.costo_computacional = 'O(n)'
+AND modalidad = 'FLUOROSCOPIA';
+
+--tabla             insert       update                      delete
+--algoritmo           no           si(costo_computacional)     no
+--procasamiento       si           si(id_paciente,id_imagen)   no
+--imagen_medica       no           si(modalidad)               no
+
+CREATE OR REPLACE FUNCTION fn_costo_computacional_modalidad_algoritmo()
+    RETURNS TRIGGER AS $$
+            DECLARE mod varchar(60);
+            paciente int;
+            imagen int;
+        BEGIN
+            SELECT id_paciente INTO paciente FROM procesamiento WHERE id_algoritmo = NEW.id_algoritmo;
+            SELECT id_imagen INTO imagen FROM procesamiento WHERE id_algoritmo = NEW.id_algoritmo;
+            SELECT modalidad INTO mod FROM imagen_medica WHERE id_paciente = paciente AND id_imagen = imagen;
+            IF(mod = 'FLUOROSCOPIA') THEN
+                RAISE EXCEPTION 'si el costo computacional es O(n) la modalidad no puede ser fluoroscopia';
+            end if;
+            RETURN NEW;
+        END;
+    $$LANGUAGE plpgsql;
+
+CREATE TRIGGER tr_costo_computacional_modalidad_algoritmo
+    BEFORE UPDATE OF costo_computacional
+    ON algoritmo
+    FOR EACH ROW
+    WHEN(NEW.modalidad = 'O(n)')
+    EXECUTE PROCEDURE fn_costo_computacional_modalidad_algoritmo();
+
+CREATE OR REPLACE FUNCTION fn_costo_computacional_modalidad_procesamiento()
+    RETURNS TRIGGER AS $$
+        DECLARE mod varchar(50);
+            costo_comp varchar(50);
+        BEGIN
+            SELECT modalidad INTO mod FROM imagen_medica WHERE id_paciente = NEW.id_paciente
+            AND id_imagen = NEW.id_imagen;
+            SELECT costo_computacional INTO costo_comp FROM algoritmo WHERE id_alogritmo = NEW.id_algoritmo;
+            IF(costo_comp = 'O(n)' AND mod = 'FLUOROSCOPIA') THEN
+                RAISE EXCEPTION 'no se puede mezclar modalidad fluoroscopia con costo computacional O(n)'
+            end if;
+            RETURN NEW;
+        END;
+    $$LANGUAGE plpgsql;
+
+CREATE TRIGGER tr_costo_computacional_modalidad_procesamiento
+    BEFORE INSERT OR UPDATE OF id_paciente, id_imagen
+    ON procesamiento
+    FOR EACH ROW EXECUTE PROCEDURE fn_costo_computacional_modalidad_procesamiento();
+
+CREATE OR REPLACE FUNCTION fn_costo_computacional_modalidad_imagen_medica()
+    RETURNS TRIGGER AS $$
+        DECLARE costo_comp varchar(49);
+        algoritmo int;
+        BEGIN
+            SELECT id_algoritmo INTO algortimo FROM procesamiento WHERE id_paciente = NEW.id_paciente
+            AND id_imagen = NEW.id_paciente;
+            SELECT costo_computacional INTO costo_comp FROM algoritmo WHERE id_algoritmo = algoritmo;
+            IF(costo_comp = 'O(n)') THEN
+                RAISE EXCEPTION 'si la modalidad es fluoroscopia el costo computacional no puede ser O(n)';
+            end if;
+            RETURN NEW;
+        END;
+    $$LANGUAGE plpgsql;
+
+CREATE TRIGGER tr_costo_computacional_modalidad_imagen_medica
+    BEFORE UPDATE OF modalidad
+    ON imagen_medica
+    FOR EACH ROW
+    WHEN(NEW.modalidad = 'FLUOROSCOPIA')
+    EXECUTE PROCEDURE fn_costo_computacional_modalidad_imagen_medica();

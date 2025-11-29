@@ -248,6 +248,7 @@ CREATE OR REPLACE VIEW v1 AS
 */
 
 
+
 /* 2b) Considerando la siguiente definición para V1, seleccione la/s afirmación/es que considere correcta/s
 respecto de esta vista y justifíquela/s claramente.
 
@@ -275,6 +276,7 @@ g. No está correctamente correlacionada la consulta con la subconsulta.
 h. Está correctamente correlacionada la consulta con la subconsulta.
 
 Las resuestas correctas son e, f y h. */
+
 
 
 /* 2c) Sobre el esquema dado se requiere definir la siguiente vista, de manera que resulte automáticamente
@@ -309,9 +311,10 @@ aportan. Resuelva con el recurso que considere más conveniente.
    CREATE OR REPLACE FUNCTION fe3(consulta_id_satelite INTEGER, consulta_fecha DATE) RETURNS TABLE (
        id_estacion      INTEGER,
        fecha_contacto   TIMESTAMP,
-       duracion_minut   INTEGER
+       duracion_minutos   INTEGER
    )
    AS $$ BEGIN
+       RETURN QUERY
        SELECT ce.id_estacion, ce.fecha_contacto, ce.duracion_minutos
        FROM CONTACTO_ESTACION ce
        WHERE ce.id_satelite = consulta_id_satelite
@@ -333,117 +336,130 @@ ese sensor.
    FROM IMAGENES_CAPTURADAS ic
    ORDER BY ic.id_sensor, ic.fecha_captura; */
 
-/* 5a) Es posible plantear con una sentencia declarativa un control que no permita agregar imágenes a satélites
-que están activos? Si su respuesta es positiva plantee el control; caso contrario justifique porque.
 
-   CREATE ASSERTION e5a CHECK (NOT EXISTS (
-   SELECT 1
-   FROM SATELITE s
-   JOIN SENSOR se ON s.id_satelite = se.id_satelite
-   JOIN IMAGENES_CAPTURADAS ic ON se.id_sensor = ic.id_sensor
-   WHERE s.estado = 'ACTIV')); */
+
+/* 5a) Es posible plantear con una sentencia declarativa un control que no permita agregar imágenes a satélites
+que están activos? Si su respuesta es positiva plantee el control, caso contrario justifique porque.
+
+CREATE ASSERTION ej_5a CHECK (
+NOT EXISTS (
+    SELECT 1
+    FROM SATELITE s
+    JOIN SENSOR se ON s.id_satelite = se.id_satelite
+    JOIN IMAGENES_CAPTURADAS ic ON se.id_sensor = ic.id_sensor
+    WHERE s.estado = 'ACTIV'
+)); */
+
+
 
 /* 5b) En caso de que sea posible plantee de manera procedural lo requerido en el punto 5.a)
 
-    -- IMAGENES_CAPTURADAS
-    CREATE OR REPLACE FUNCTION fn_e5b() RETURNS TRIGGER
-    AS $$
-    DECLARE
-        v_estado SATELITE.estado%type;
-    BEGIN
-        -- 1. Buscar el estado del satélite asociado al sensor que se está usando
-        SELECT s.estado
-        INTO v_estado
-        FROM SENSOR se
-        JOIN SATELITE s ON s.id_satelite = se.id_satelite
-        WHERE se.id_sensor = NEW.id_sensor;
+   TABLA                    INSERT      UPDATE              DELETE
+   SATELITE                 NO          SI estado           NO
+   SENSOR                   NO          SI id_satelite      NO
+   IMAGENES_CAPTURADAS      SI          SI id_sensor        NO
 
-        -- 2. Si el satélite está activo => prohibir la inserción/actualización
-        IF v_estado = 'ACTIV' THEN
-            RAISE EXCEPTION
-                'No se pueden agregar imágenes a satélites activos (id_sensor=%)',
-                NEW.id_sensor;
-        END IF;
+   -- Trigger SATELITE
+   CREATE OR REPLACE TRIGGER tr_ej5b_satelite
+   BEFORE UPDATE OF estado ON SATELITE
+   FOR EACH ROW EXECUTE FUNCTION fn_ej5b_satelite();
 
-        -- 3. Si no está activo, permito la inserción
-        RETURN NEW;
-    END; $$ LANGUAGE 'plpgsql';
+   -- Función SATELITE
+   CREATE OR REPLACE FUNCTION fn_ej5b_satelite() RETURNS TRIGGER AS
+   $$
+   BEGIN
 
-    CREATE TRIGGER trg_e5b
-    BEFORE INSERT OR UPDATE OF id_sensor
-    ON IMAGENES_CAPTURADAS
-    FOR EACH ROW
-    EXECUTE FUNCTION fn_e5b();
+    IF (NEW.estado = 'ACTIV') THEN
 
-    -- SENSOR
-    CREATE OR REPLACE FUNCTION fn_e5b_sensor() RETURNS TRIGGER
-    AS $$
-    DECLARE
-        v_estado SATELITE.estado%TYPE;
-    BEGIN
-        -- Si no cambia el satélite, no hay nada que controlar
-        IF NEW.id_satelite = OLD.id_satelite THEN
-            RETURN NEW;
-        END IF;
-
-        -- Ver el estado del nuevo satélite
-        SELECT s.estado
-        INTO v_estado
-        FROM SATELITE s
-        WHERE s.id_satelite = NEW.id_satelite;
-
-        -- Si el nuevo satélite es activo y el sensor ya tiene imágenes, prohibir
-        IF UPPER(v_estado) = 'ACTIV' THEN
-            IF EXISTS (
-                SELECT 1
-                FROM IMAGENES_CAPTURADAS ic
-                WHERE ic.id_sensor = NEW.id_sensor
-            ) THEN
-                RAISE EXCEPTION
-                    'No se puede mover un sensor con imágenes a un satélite activo (id_sensor=%)',
-                    NEW.id_sensor;
-            END IF;
-        END IF;
-
-        RETURN NEW;
-    END;
-    $$ LANGUAGE plpgsql;
-
-    CREATE TRIGGER trg_e5b_sensor
-    BEFORE UPDATE OF id_satelite
-    ON SENSOR
-    FOR EACH ROW
-    EXECUTE FUNCTION fn_e5b_sensor();
-
-   -- SATELITE
-    CREATE OR REPLACE FUNCTION fn_e5b_satelite()
-    RETURNS TRIGGER
-    AS $$
-    BEGIN
-        -- Si el estado no cambia a activo, no hay nada que controlar
-        IF UPPER(NEW.estado) <> 'ACTIV' THEN
-            RETURN NEW;
-        END IF;
-
-        -- Si lo están poniendo en 'activ', verificar si ya hay imágenes asociadas
         IF EXISTS (
             SELECT 1
             FROM SENSOR se
-            JOIN IMAGENES_CAPTURADAS ic
-              ON ic.id_sensor = se.id_sensor
+            JOIN IMAGENES_CAPTURADAS ic ON se.id_sensor = ic.id_sensor
             WHERE se.id_satelite = NEW.id_satelite
-        ) THEN
-            RAISE EXCEPTION
-                'No se puede activar un satélite que ya tiene imágenes asociadas (id_satelite=%)',
-                NEW.id_satelite;
+        )
+
+        THEN RAISE EXCEPTION 'No se puede actualizar el estado a ACTIVO porque existen imágenes para
+        el satélite id_satelite = %', NEW.id_satelite;
+
         END IF;
 
-        RETURN NEW;
-    END;
-    $$ LANGUAGE plpgsql;
+    END IF;
 
-    CREATE TRIGGER trg_e5b_satelite
-    BEFORE UPDATE OF estado
-    ON SATELITE
-    FOR EACH ROW
-    EXECUTE FUNCTION fn_e5b_satelite(); */
+    RETURN NEW;
+
+   END;
+   $$ LANGUAGE 'plpgsql';
+
+
+
+   -- Trigger SENSOR
+   CREATE OR REPLACE TRIGGER tr_ej5b_sensor
+   BEFORE UPDATE OF id_satelite ON SENSOR
+   FOR EACH ROW EXECUTE FUNCTION fn_ej5b_sensor();
+
+   -- Función SENSOR
+   CREATE OR REPLACE FUNCTION fn_ej5b_sensor() RETURNS TRIGGER AS
+   $$
+   DECLARE
+
+    v_estado SATELITE.estado%type;
+
+   BEGIN
+
+    SELECT s.estado
+    INTO v_estado
+    FROM SATELITE s
+    WHERE s.id_satelite = NEW.id_satelite;
+
+    IF (v_estado = 'ACTIV') THEN
+
+        IF EXISTS (
+            SELECT 1
+            FROM IMAGENES_CAPTURADAS ic
+            WHERE ic.id_sensor = NEW.id_sensor
+        )
+
+        THEN RAISE EXCEPTION 'No se puede modificar al id_satelite = % porque el sensor ya tiene imágenes.', NEW.id_satelite;
+
+        END IF;
+
+    END IF;
+
+    RETURN NEW;
+
+   END;
+   $$ LANGUAGE 'plpgsql';
+
+
+   -- Trigger IMAGENES_CAPTURADAS
+   CREATE OR REPLACE TRIGGER tr_ej5b_imgcapt
+   BEFORE INSERT OR UPDATE OF id_sensor
+   ON IMAGENES_CAPTURADAS
+   FOR EACH ROW EXECUTE FUNCTION fn_ej5b_imgcapt();
+
+   -- Función IMAGENES_CAPTURADAS
+   CREATE OR REPLACE FUNCTION fn_ej5b_imgcapt() RETURNS TRIGGER AS
+   $$
+   DECLARE
+    v_satelite SENSOR.id_satelite%type;
+    v_estado SATELITE.estado%type;
+   BEGIN
+
+       SELECT se.id_satelite
+       INTO v_satelite
+       FROM SENSOR se
+       WHERE se.id_sensor = NEW.id_sensor;
+
+       SELECT s.estado
+       INTO v_estado
+       FROM SATELITE s
+       WHERE v_satelite = s.id_satelite;
+
+       IF (v_estado = 'ACTIV') THEN
+            RAISE EXCEPTION 'No se pueden agregar imágenes al satélite id = %', v_satelite;
+       END IF;
+
+       RETURN NEW;
+
+   END;
+   $$ LANGUAGE 'plpgsql'; */

@@ -1,0 +1,317 @@
+CREATE OR REPLACE FUNCTION generar_datos_sueldos_empleados_media()RETURNS VOID AS $$
+BEGIN
+    delete from unc_251952.pelis_mas_entragadas;
+    insert into unc_251952.pelis_mas_entragadas(código_pelicula, titulo, cantidad_de_entregas)
+    select codigo_pelicula, titulo, cantidad
+     from (select p.codigo_pelicula, p.titulo, e.cantidad
+           from unc_251952.pelicula p
+                    join unc_251952.renglon_entrega e on (p.codigo_pelicula = e.codigo_pelicula)
+                    join unc_251952.entrega en on (en.nro_entrega = e.nro_entrega)
+           where extract(month from en.fecha_entrega) >= extract(month from current_date) - 6
+           limit 20) as tabla;
+    return;
+END $$
+LANGUAGE 'plpgsql';
+
+select * from pelis_mas_entragadas;
+select generar_datos_sueldos_empleados_media();
+
+
+
+--Cree una vista EMPLEADO_DIST que liste el nombre, apellido, sueldo, y fecha_nacimiento de
+--los empleados que pertenecen al distribuidor cuyo identificador es 20.
+
+create view empleado_dist as
+select nombre, apellido, sueldo, fecha_nacimiento
+from empleado
+where id_empleado = 20;
+
+
+--Sobre la vista anterior defina otra vista EMPLEADO_DIST_2000 con el nombre, apellido y sueldo
+--de los empleados que cobran más de 2000.
+
+create view empleado_dist_2000 as
+select nombre, apellido, sueldo from empleado_dist
+where sueldo > 2000;
+
+SELECT genero, COUNT(*) total_peliculas, count (distinct idioma) cantidad_idiomas
+FROM Pelicula GROUP BY genero;
+
+create or replace function estadisticas()
+returns trigger as
+    $$BEGIN
+        if tg_op = 'INSERT' then update estadistica set total_peliculas = (total_peliculas + 1),
+            cantidad_idiomas = (select count(distinct idioma)
+                                from unc_251952.pelicula
+                                where genero = new.genero)
+        where genero = new.genero;
+         return new;
+        end if;
+        if tg_op = 'UPDATE' then update estadistica set total_peliculas = (total_peliculas +1),
+        cantidad_idiomas = (select count(distinct idioma)
+                            from unc_251952.pelicula
+                            where genero = new.genero)
+        where genero = new.genero;
+        update estadistica set total_peliculas = (total_peliculas - 1),
+        cantidad_idiomas = (select count(distinct idioma)
+                            from unc_251952.pelicula
+                            where genero = old.genero)
+        where genero = old.genero;
+        return new;
+        end if;
+        if tg_op = 'DELETE' then update estadistica set total_peliculas = (total_peliculas -1),
+         cantidad_idiomas = (select count(distinct idioma)
+                            from unc_251952.pelicula
+                            where genero = old.genero)
+        where genero = old.genero;
+        return old;
+        end if;
+        END$$
+language 'plpgsql';
+
+
+create trigger tr_estadisticas
+    after insert or update of codigo_pelicula, idioma, genero or delete
+    on unc_251952.pelicula
+    for each row
+    execute procedure estadisticas();
+
+create sequence nro_registro_his_tarea as integer;
+
+alter sequence nro_registro_his_tarea owner to unc_251952;
+
+alter sequence nro_registro_his_tarea owned by his_tarea.nro_registro;
+
+create or replace function his_tarea()
+returns trigger as
+    $$BEGIN
+        if tg_op = 'INSERT' then insert into his_tarea (nro_registro, fecha, operacion, usuario)
+        values (nextval('nro_registro_his_tarea'), current_date, tg_op, current_user);
+        return new;
+        end if;
+        if tg_op = 'UPDATE' then insert into his_tarea (nro_registro, fecha, operacion, usuario)
+        values (nextval('nro_registro_his_tarea'), current_date, tg_op, current_user);
+        return new;
+        end if;
+         if tg_op = 'DELETE' then insert into his_tarea (nro_registro, fecha, operacion, usuario)
+        values (nextval('nro_registro_his_tarea'), current_date, tg_op, current_user);
+        return old;
+        end if;
+        END$$
+language 'plpgsql';
+
+select * from his_tarea;
+
+create trigger tr_his_tarea
+    after insert or update or delete
+    on unc_251952.tarea_v
+    for each row
+    execute procedure his_tarea();
+
+
+create table sueldos(
+    id_emplado integer not null,
+    apellido varchar not null,
+    nombre varchar not null,
+    sueldo integer not null,
+    porc_comision integer not null,
+    constraint pk_id_empleado primary key(id_emplado));
+
+create or replace function generar_datos_para_sueldos()
+returns void as
+    $$BEGIN
+        insert into unc_251952.sueldos(id_emplado, apellido, nombre, sueldo, porc_comision)
+        select id_empleado,apellido,nombre,sueldo,porc_comision
+        from unc_251952.empleado e
+        where sueldo is not null and e.porc_comision > (select avg(porc_comision)
+                                 from unc_251952.empleado
+                                 where id_departamento = e.id_departamento)
+        limit 200;
+    END$$
+language 'plpgsql';
+
+select generar_datos_para_sueldos();
+
+select * from sueldos;
+
+create view empleado_vista_20_70 as
+select nombre, apellido
+from empleado_dist
+where extract(year from fecha_nacimiento) BETWEEN 1970 and 1979;
+
+select * from empleado_vista_20_70;
+
+
+--CREATE ASSERTION
+   --CHECK ( NOT EXISTS (
+              --  SELECT 1
+              --  FROM p5p2e4_imagen_medica i JOIN p5p2e4_procesamiento p ON
+              --      (i.id_paciente = p.id_paciente AND i.id_imagen = p.id_imagen)
+               --     JOIN p5p2e4_algoritmo a ON ( p.id_algoritmo = a.id_algoritmo )
+               -- WHERE modalidad = 'FLUOROSCOPIA' AND
+                --    costo_computacional = 'O(n)'
+
+create or replace function fn_modalidad()
+returns trigger as
+$$declare costo_comput varchar(15);
+    id_algor integer;
+    BEGIN
+        select id_algoritmo into id_algor from p5p2e4_procesamiento where id_imagen = new.id_imagen and id_paciente = new.id_paciente;
+        select costo_computacional into costo_comput from p5p2e4_algoritmo where id_algoritmo = id_algor;
+        if costo_comput = '0(n)' then
+            raise exception 'error';
+            return new;
+        end if;
+    END$$
+language 'plpgsql';
+
+
+create or replace function fn_procesamiento()
+returns trigger as
+$$declare
+    costo_comp varchar(25);
+    modali varchar(80);
+    BEGIN
+    select costo_computacional into costo_comp from p5p2e4_algoritmo where id_algoritmo = new.id_algoritmo;
+    select modalidad into modali from p5p2e4_imagen_medica where id_imagen = new.id_imagen and id_paciente = new.id_paciente;
+    if modali = 'FLUROSCOPIA' and costo_comp = '0(n)' then
+        raise exception 'error';
+        return new;
+end if;
+END$$language 'plpgsql';
+
+create or replace function fn_algoritmo()
+returns trigger as
+$$declare modal varchar(80);
+    imagen integer;
+    paciente integer;
+    BEGIN
+    select id_imagen into imagen from p5p2e4_procesamiento where id_algoritmo = new.id_algoritmo;
+    select id_paciente into paciente from p5p2e4_procesamiento where id_algoritmo = new.id_algoritmo;
+    select modalidad into modal from p5p2e4_imagen_medica where id_imagen = imagen and id_paciente = paciente;
+    if modal = 'FLUROSCOPIA' then
+        raise exception 'error';
+        return new;
+    end if;
+    END$$
+language 'plpgsql';
+
+create trigger tr_modalidad
+before update of modalidad
+on unc_251952.p5p2e4_imagen_medica
+for each row
+when(new.modalidad = 'FLUROSCOPIA')
+execute procedure fn_modalidad();
+
+create trigger tr_procesamiento
+before insert or update of id_imagen,id_paciente,id_algoritmo
+on unc_251952.p5p2e4_procesamiento
+for each row
+execute procedure fn_procesamiento();
+
+create trigger tr_costo_computacional
+before update of costo_computacional
+on unc_251952.p5p2e4_algoritmo
+for each row
+when (new.costo_computacional = 'O(n)')
+execute procedure fn_algoritmo();
+
+drop table cant_voluntariosxtarea;
+
+create table CANT_VOLUNTARIOSXTAREA(
+  anio integer not null,
+  mes integer not null,
+  id_tarea varchar(30) not null,
+  nombre_tarea varchar(45) not null,
+  cant_voluntarios integer not null);
+
+create or replace function fn_voluntarios_tarea()
+returns void as
+$$BEGIN
+    delete from CANT_VOLUNTARIOSXTAREA;
+    insert into CANT_VOLUNTARIOSXTAREA(anio, mes, id_tarea, nombre_tarea, cant_voluntarios)
+    select extract(year from fecha_inicio) as anio, extract(month from fecha_inicio) as mes, t.id_tarea, t.nombre_tarea, count(*) as cant_voluntarios
+    from unc_251952.voluntario v
+    join unc_251952.tarea_v t on(t.id_tarea = v.id_tarea)
+    join unc_251952.historico h on(v.id_tarea = h.id_tarea)
+    group by extract(year from fecha_inicio), extract(month from fecha_inicio),t.id_tarea,t.nombre_tarea;
+    END$$
+language 'plpgsql';
+
+select fn_voluntarios_tarea();
+
+select * from cant_voluntariosxtarea;
+
+--ALTER TABLE p5p2e4_procesamiento
+  -- ADD CONSTRAINT CK_CANTIDAD_PROCESAMIENTOS
+   --CHECK ( NOT EXISTS (
+     --       SELECT 1
+       --     FROM p5p2e4_procesamiento
+         --   GROUP BY id_paciente, id_imagen
+           -- HAVING COUNT(*) > 5
+
+create or replace function fn_procesamiento2()
+returns trigger as
+$$declare
+    cantidad integer;
+    BEGIN
+    select count(*) into cantidad from unc_251952.p5p2e4_procesamiento
+    where id_imagen = new.id_imagen and id_paciente = new.id_paciente;
+    if cantidad > 4 then
+        raise exception 'error';
+    end if;
+    return new;
+    END$$
+language 'plpgsql';
+
+create trigger tr_procesamiento
+before insert or update of id_paciente, id_imagen
+on unc_251952.p5p2e4_procesamiento
+for each row
+execute procedure fn_procesamiento2();
+
+--CREATE ASSERTION
+  -- CHECK ( NOT EXISTS (
+    --        select 1
+      --      FROM p5p2e4_imagen_medica i JOIN p5p2e4_procesamiento p
+        --    ON (i.id_paciente = p.id_paciente and i.id_imagen = p.id_imagen)
+          --  WHERE fecha_proc < fecha_img )
+
+create or replace function fn_procesamiento3()
+returns trigger as
+$$declare
+    fecha_img date;
+    BEGIN
+    select fecha_imagen into fecha_img from unc_251952.p5p2e4_imagen_medica where id_paciente = new.id_paciente and id_imagen = new.id_imagen;
+    if new.fecha_procesamiento > fecha_img then
+        raise exception 'error';
+    end if;
+    return new;
+    END$$
+language 'plpgsql';
+
+create or replace function fn_imagen_medica2()
+returns trigger as
+$$declare
+    fecha_pro date;
+    BEGIN
+    select fecha_procesamiento into fecha_pro from unc_251952.p5p2e4_procesamiento where id_imagen = new.id_imagen and id_paciente = new.id_paciente;
+    if new.fecha_imagen > fecha_pro then
+    raise exception 'error';
+    end if;
+    return new;
+    END$$
+language 'plpgsql';
+
+create trigger tr_imagen_medica2
+before  update of fecha_imagen
+on unc_251952.p5p2e4_imagen_medica
+for each row
+execute procedure fn_imagen_medica2();
+
+create trigger fn_procesamiento3
+before insert or update of fecha_procesamiento
+on unc_251952.p5p2e4_procesamiento
+for each row
+execute procedure fn_procesamiento3();
+

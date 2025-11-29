@@ -1,0 +1,40 @@
+4) El dueño del esquema dado ha ejecutado las siguientes sentencias:
+
+CREATE USER user_admin IDENTIFIED BY 'admin123';
+CREATE USER user_vendedor IDENTIFIED BY 'vend123';
+CREATE USER user_cliente IDENTIFIED BY 'cli123';
+CREATE USER user_auditor IDENTIFIED BY 'audit123';
+
+GRANT ALL PRIVILEGES ON PRODUCTO TO user_admin WITH GRANT OPTION;
+GRANT INSERT ON PEDIDO TO user_vendedor;
+GRANT INSERT ON DETALLE_PEDIDO TO user_vendedor;
+GRANT SELECT ON CLIENTE TO user_cliente;
+GRANT SELECT ON DIRECCION_ENTREGA TO user_cliente;
+GRANT SELECT ON HISTORIAL_CAMBIO_ESTADO TO user_auditor WITH GRANT OPTION;
+GRANT UPDATE (stock) ON PRODUCTO TO user_vendedor;
+
+Luego de algunos meses el dueño del esquema ejecuta:
+
+REVOKE INSERT ON PEDIDO FROM user_vendedor;
+REVOKE SELECT ON DIRECCION_ENTREGA FROM user_cliente;
+REVOKE GRANT OPTION FOR ALL PRIVILEGES ON PRODUCTO FROM user_admin;
+
+…y user_admin ejecuta
+
+REVOKE GRANT OPTION FOR SELECT ON HISTORIAL_CAMBIO_ESTADO FROM user_auditor;
+REVOKE ALL PRIVILEGES ON DETALLE_PEDIDO FROM user_vendedor;
+
+¿Qué permisos tendrá cada usuario después de estas modificaciones?
+
+user_admin
+ALL PRIVILEGES ON PRODUCTO
+
+user_vendedor
+INSERT ON DETALLE_PEDIDO
+UPDATE (stock) ON PRODUCTO
+
+user_cliente
+SELECT ON CLIENTE
+
+user_auditor
+SELECT ON HISTORIAL_CAMBIO_ESTADO WITH GRANT OPTION
