@@ -228,7 +228,7 @@ La fecha en el historial de cambios debe ser posterior o igual a la del pedido.
 
 Resuelva según lo solicitado y justifique el tipo de chequeo utilizado.
 
-CREATE ASSERTION ch_e1b CHECK (
+   CREATE ASSERTION ch_e1b CHECK (
    NOT EXISTS (
    SELECT 1
    FROM PEDIDO p
@@ -294,20 +294,20 @@ vista. Resuelva según lo solicitado y justifique su solución.
 - V2: Que liste todos los productos indicando el nombre, precio, stock, el nombre de su categoría y el nombre de
 su tipo categoría. Debe incluir los productos sin categoría.
 
-    CREATE OR REPLACE VIEW v2 AS
-        SELECT
-            p.id_producto,
-            p.nombre,
-            p.precio,
-            p.stock,
-            (SELECT c.nombre
-             FROM CATEGORIA c
-             WHERE c.id_tipo_cat = p.id_tipo_cat
-             AND c.id_categoria = p.id_categoria) AS nombre_categoria
-            (SELECT tc.nombre_tipo_cat
-             FROM TIPO_CATEGORIA tc
-             WHERE tc.id_tipo_cat = p.id_tipo_cat) AS nombre_tipo_categoria
-        FROM PRODUCTO p;
+   CREATE OR REPLACE VIEW v2 AS
+   SELECT
+       p.id_producto,
+       p.nombre,
+       p.precio,
+       p.stock,
+       (SELECT c.nombre
+           FROM CATEGORIA c
+           WHERE p.id_tipo_cat = c.id_tipo_cat
+           AND p.id_categoria = c.id_categoria) AS nombre_categoria,
+       (SELECT tc.nombre_tipo_cat
+               FROM TIPO_CATEGORIA tc
+               WHERE p.id_tipo_cat = tc.id_tipo_cat) AS nombre_tipo_categoria
+    FROM PRODUCTO p;
 
 
 
@@ -329,50 +329,195 @@ debería utilizar un usuario para la ejecución del mismo.
 
 Nota: no puede utilizar sentencias de bucle (for, loop, etc.) para resolverlo.
 
-CREATE OR REPLACE FUNCTION completar_productos_cliente() RETURNS void
-   AS $$
+CREATE OR REPLACE FUNCTION fn_ej3a() RETURNS VOID AS
+$$
    BEGIN
-    INSERT INTO PRODUCTOS_CLIENTE (
-        id_cliente,
-        nombre,
-        apellido,
-        email,
-        cantidad_productos,
-        fecha_ultimo_pedido
-    )
-    SELECT
-        c.id_cliente,
-        c.nombre,
-        c.apellido,
-        c.email,
-        COALESCE(SUM(d.cantidad), 0) AS cantidad_productos,
-        MAX(p.fecha) AS fecha_ultimo_pedido
-    FROM CLIENTE c
-    LEFT JOIN DIRECCION_ENTREGA de
-           ON de.cliente_id = c.id_cliente
-    LEFT JOIN PEDIDO p
-           ON p.id_direccion = de.id_direccion
-    LEFT JOIN DETALLE_PEDIDO d
-           ON d.id_pedido = p.id_pedido
-    GROUP BY
-        c.id_cliente,
-        c.nombre,
-        c.apellido,
-        c.email;
-   RETURN;
+
+       -- Recalcular desde cero cada vez
+       TRUNCATE TABLE PRODUCTOS_CLIENTE;
+
+       INSERT INTO PRODUCTOS_CLIENTE (
+            id_cliente,
+            nombre,
+            apellido,
+            email,
+            cantidad_productos,
+            fecha_ultimo_pedido
+       )
+       SELECT
+           c.id_cliente,
+           c.nombre,
+           c.apellido,
+           c.email,
+           COALESCE(SUM(dp.cantidad), 0) AS cantidad_productos,
+           MAX(p.fecha) AS fecha_ultimo_pedido
+       FROM CLIENTE c
+       LEFT JOIN DIRECCION_ENTREGA de ON c.id_cliente = de.cliente_id
+       LEFT JOIN PEDIDO p ON de.id_direccion = p.id_direccion
+       LEFT JOIN DETALLE_PEDIDO dp ON p.id_pedido = dp.id_pedido
+       GROUP BY
+            c.id_cliente,
+            c.nombre,
+            c.apellido,
+            c.email;
+
    END;
 $$ LANGUAGE 'plpgsql';
 
-Sentencia que ejecutaría el usuario: SELECT completar_productos_cliente();
+Para ejecutar la función el usuario debe utilizar: SELECT fn_ej3a();
 
 3.b) Indique y justifique todos los eventos críticos necesarios para mantener los datos actualizados en la tabla
 productos_cliente cuando se produzcan actualizaciones en la base. Incluya la declaración de los triggers
 correspondientes en PostgreSQL y escriba la implementación de la/s función/es requerida/s para operaciones
 de insert.
 
-??
+   TABLA                INSERT      UPDATE                                      DELETE
+   CLIENTE              SI          SI id_cliente, nombre, apellido, email      SI
+   DIRECCION_ENTREGA    NO          SI cliente_id                               NO
+   PEDIDO               SI          SI fecha, id_direccion                      SI
+   DETALLE_PEDIDO       SI          SI id_pedido, cantidad                      SI
 
+   -- Triggers
+   CREATE OR REPLACE TRIGGER tr_ej3b_cliente
+   AFTER INSERT OR UPDATE OF id_cliente, nombre, apellido, email OR DELETE
+   ON CLIENTE
+   FOR EACH ROW EXECUTE FUNCTION fn_ej3b_cliente();
 
+   CREATE OR REPLACE TRIGGER tr_ej3b_direntrega
+   AFTER UPDATE OF cliente_id
+   ON DIRECCION_ENTREGA
+   FOR EACH ROW EXECUTE FUNCTION fn_ej3b_direntrega();
+
+   CREATE OR REPLACE TRIGGER tr_ej3b_pedido
+   AFTER INSERT OR UPDATE OF fecha, id_direccion OR DELETE
+   ON PEDIDO
+   FOR EACH ROW EXECUTE FUNCTION fn_ej3b_pedido();
+
+   CREATE OR REPLACE TRIGGER tr_ej3b_detpedido
+   AFTER INSERT OR UPDATE OF id_pedido, cantidad OR DELETE
+   ON DETALLE_PEDIDO
+   FOR EACH ROW EXECUTE FUNCTION fn_ej3b_detpedido();
+
+   -- Funciones
+   -- CLIENTE
+   CREATE OR REPLACE FUNCTION fn_ej3b_cliente() RETURNS TRIGGER AS
+   $$
+   BEGIN
+
+       IF (TG_OP = 'INSERT') THEN
+
+           INSERT INTO PRODUCTOS_CLIENTE (
+                    id_cliente,
+                    nombre,
+                    apellido,
+                    email,
+                    cantidad_productos,
+                    fecha_ultimo_pedido
+               )
+               VALUES (
+                   NEW.id_cliente,
+                   NEW.nombre,
+                   NEW.apellido,
+                   NEW.email,
+                   0,
+                   NULL
+               );
+
+           RETURN NEW;
+
+       END IF;
+
+       -- Acá iría UPDATE y DELETE
+
+       RETURN NULL;
+
+   END;
+   $$ LANGUAGE 'plpgsql';
+
+   -- PEDIDO
+   CREATE OR REPLACE FUNCTION fn_ej3b_pedido() RETURNS TRIGGER AS
+   $$
+   DECLARE
+    v_id_cliente CLIENTE.id_cliente%type;
+    v_fecha_ult PEDIDO.fecha%type;
+   BEGIN
+
+       IF (TG_OP = 'INSERT') THEN
+
+           -- 1) Buscar el cliente asociado al pedido recién insertado
+           SELECT c.id_cliente
+           INTO v_id_cliente
+           FROM PEDIDO p
+           JOIN DIRECCION_ENTREGA de ON p.id_direccion = de.id_direccion
+           JOIN CLIENTE c ON de.cliente_id = c.id_cliente
+           WHERE p.id_pedido = NEW.id_pedido;
+
+           -- 2) Calcular la nueva fecha_ultimo_pedido de ese cliente
+           SELECT MAX(p2.fecha)
+           INTO v_fecha_ult
+           FROM PEDIDO p2
+           JOIN DIRECCION_ENTREGA de2 ON p2.id_direccion = de2.id_direccion
+           WHERE de2.cliente_id = v_id_cliente;
+
+           -- 3) Actualizar productos_cliente
+           UPDATE PRODUCTOS_CLIENTE pc
+           SET fecha_ultimo_pedido = v_fecha_ult
+           WHERE pc.id_cliente = v_id_cliente;
+
+           RETURN NEW;
+
+       END IF;
+
+       -- Acá iría UPDATE y DELETE
+
+       RETURN NULL;
+
+   END;
+   $$ LANGUAGE 'plpgsql';
+
+   -- DETALLE_PEDIDO
+   CREATE OR REPLACE FUNCTION fn_ej3b_detpedido() RETURNS TRIGGER AS
+   $$
+   DECLARE
+    v_id_cliente CLIENTE.id_cliente%type;
+    v_cantidad_total DETALLE_PEDIDO.cantidad%type;
+   BEGIN
+
+        IF (TG_OP = 'INSERT') THEN
+
+           -- 1) Buscar el cliente asociado al detalle recién insertado
+           SELECT c.id_cliente
+           INTO v_id_cliente
+           FROM DETALLE_PEDIDO dp
+           JOIN PEDIDO p ON dp.id_pedido = p.id_pedido
+           JOIN DIRECCION_ENTREGA de ON p.id_direccion = de.id_direccion
+           JOIN CLIENTE c ON de.cliente_id = c.id_cliente
+           WHERE p.id_pedido = NEW.id_pedido
+           AND dp.id_producto = NEW.id_producto;
+
+           -- 2) Calcular la nueva cantidad_productos de ese cliente
+           SELECT SUM(dp2.cantidad)
+           INTO v_cantidad_total
+           FROM DETALLE_PEDIDO dp2
+           JOIN PEDIDO p2 ON dp2.id_pedido = p2.id_pedido
+           JOIN DIRECCION_ENTREGA de2 ON p2.id_direccion = de2.id_direccion
+           WHERE de2.cliente_id = v_id_cliente;
+
+           -- 3) Actualizar productos_cliente
+           UPDATE PRODUCTOS_CLIENTE pc
+           SET cantidad_productos = v_cantidad_total
+           WHERE pc.id_cliente = v_id_cliente;
+
+           RETURN NEW;
+
+       END IF;
+
+       -- Acá iría UPDATE y DELETE
+
+       RETURN NULL;
+
+   END;
+   $$ LANGUAGE 'plpgsql';
 
 6) En el esquema dado se detectó un problema:
 Algunos clientes logran registrar múltiples direcciones residenciales idénticas, generando redundancia
